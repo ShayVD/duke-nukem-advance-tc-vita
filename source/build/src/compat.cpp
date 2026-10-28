@@ -31,6 +31,9 @@
 
 #include "baselayer.h"
 #include "vfs.h"
+#ifdef __PSP2__
+# include "vitabits.h"
+#endif
 
 ////////// PANICKING ALLOCATION FUNCTIONS //////////
 
@@ -117,6 +120,8 @@ char *Bgethomedir(void)
     return NULL;
 #elif defined EDUKE32_OSX
     return osx_gethomedir();
+#elif defined(__PSP2__)
+    return Xstrdup(VITA_DATA_DIR);
 #elif defined(GEKKO)
     // return current drive's name
     char *drv, cwd[BMAX_PATH] = {0};

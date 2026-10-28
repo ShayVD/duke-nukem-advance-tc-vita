@@ -1,0 +1,26 @@
+name: Vita build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  vpk:
+    runs-on: ubuntu-latest
+    container: vitasdk/vitasdk:latest
+    steps:
+      - name: Install build tools
+        run: apk add --no-cache make git bash coreutils
+
+      - uses: actions/checkout@v4
+
+      - name: Build VPK
+        run: ./platform/PSVita/build.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dna-vita
+          path: |
+            build/vita/dna-vita.vpk
+            eduke32.elf

@@ -67,7 +67,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 # define UPDATEINTERVAL 604800 // 1w
 # include "winbits.h"
 #else
-# ifndef GEKKO
+# if !defined GEKKO && !defined __PSP2__
 #  include <sys/ioctl.h>
 # endif
 #endif /* _WIN32 */

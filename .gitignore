@@ -87,3 +87,5 @@ project.xcworkspace/
 .DS_Store
 ._*
 /source/voidwrap/sdk/
+/eduke32.elf
+/build/

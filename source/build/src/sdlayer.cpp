@@ -45,6 +45,8 @@
 # include <ogc/lwp_watchdog.h>
 #elif defined _WIN32
 # include "winbits.h"
+#elif defined __PSP2__
+# include "vitabits.h"
 #endif
 
 #include "vfs.h"
@@ -323,7 +325,7 @@ void wm_setapptitle(const char *name)
 //
 
 /* XXX: libexecinfo could be used on systems without gnu libc. */
-#if !defined _WIN32 && defined __GNUC__ && !defined __OpenBSD__ && !(defined __APPLE__ && defined __BIG_ENDIAN__) && !defined GEKKO && !defined EDUKE32_TOUCH_DEVICES && !defined __OPENDINGUX__
+#if !defined _WIN32 && defined __GNUC__ && !defined __OpenBSD__ && !(defined __APPLE__ && defined __BIG_ENDIAN__) && !defined GEKKO && !defined __PSP2__ && !defined EDUKE32_TOUCH_DEVICES && !defined __OPENDINGUX__
 # define PRINTSTACKONSEGV 1
 # include <execinfo.h>
 #endif
@@ -475,6 +477,8 @@ int main(int argc, char *argv[])
         while (*wp) wp++;
     }
     argv[argc] = NULL;
+#elif defined __PSP2__
+    vita_preinit(&argc, &argv);
 #endif
 
     engineSetupAllocator();

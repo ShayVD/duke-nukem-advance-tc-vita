@@ -76,6 +76,9 @@ endif
 ifeq ($(PLATFORM),WII)
     EXESUFFIX := .elf
 endif
+ifeq ($(PLATFORM),PSP2)
+    EXESUFFIX := .elf
+endif
 ifeq ($(PLATFORM),WINDOWS)
     EXESUFFIX := .exe
     DLLSUFFIX := .dll
@@ -177,6 +180,14 @@ ifeq ($(PLATFORM),WII)
     CCFULLPATH = $(DEVKITPPC)/bin/$(CC)
 else ifeq ($(PLATFORM),$(filter $(PLATFORM),DINGOO GCW))
     CROSS := mipsel-linux-
+else ifeq ($(PLATFORM),PSP2)
+    ifeq ($(strip $(VITASDK)),)
+        $(error "Please set VITASDK in your environment.")
+    endif
+
+    export PATH := $(VITASDK)/bin:$(PATH)
+
+    CROSS := arm-vita-eabi-
 endif
 
 CC := $(CROSS)gcc$(CROSS_SUFFIX)
@@ -288,6 +299,8 @@ ifeq ($(PLATFORM),WINDOWS)
     endif
 else ifeq ($(PLATFORM),WII)
     IMPLICIT_ARCH := ppc
+else ifeq ($(PLATFORM),PSP2)
+    IMPLICIT_ARCH := arm
 else ifeq ($(PLATFORM),$(filter $(PLATFORM),DINGOO GCW))
     IMPLICIT_ARCH := mipsel
 else
@@ -385,6 +398,15 @@ else ifeq ($(PLATFORM),WII)
     override HAVE_GTK2 := 0
     override HAVE_FLAC := 0
     SDL_TARGET := 1
+else ifeq ($(PLATFORM),PSP2)
+    override USE_OPENGL := 0
+    override NETCODE := 0
+    override HAVE_GTK2 := 0
+    override HAVE_FLAC := 0
+    override USE_LIBVPX := 0
+    override USE_MIMALLOC := 0
+    override STARTUP_WINDOW := 0
+    override NOASM := 1
 else ifeq ($(PLATFORM),$(filter $(PLATFORM),DINGOO GCW))
     override USE_OPENGL := 0
     override NOASM := 1
@@ -538,6 +560,10 @@ else ifeq ($(PLATFORM),WII)
     # -msdata=eabiexport
     COMPILERFLAGS += -DGEKKO -D__POWERPC__ -I$(LIBOGC_INC)
     LIBDIRS += -L$(LIBOGC_LIB)
+else ifeq ($(PLATFORM),PSP2)
+    COMMONFLAGS += -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard -mthumb
+    COMPILERFLAGS += -D__PSP2__
+    LINKERFLAGS += -Wl,-q
 else ifeq ($(PLATFORM),$(filter $(PLATFORM),DINGOO GCW))
     COMPILERFLAGS += -D__OPENDINGUX__
 else ifeq ($(SUBPLATFORM),LINUX)
@@ -878,6 +904,9 @@ else ifeq ($(PLATFORM),BSD)
 else ifeq ($(PLATFORM),WII)
     COMPILERFLAGS += -I$(PORTLIBS)/include -Iplatform/Wii/include
     LIBDIRS += -L$(PORTLIBS)/lib -Lplatform/Wii/lib
+else ifeq ($(PLATFORM),PSP2)
+    COMPILERFLAGS += -I$(VITASDK)/arm-vita-eabi/include
+    LIBDIRS += -L$(VITASDK)/arm-vita-eabi/lib
 endif
 
 
@@ -918,6 +947,10 @@ ifeq ($(RENDERTYPE),SDL)
     endif
 
     ifeq ($(PLATFORM),WII)
+        SDLCONFIG :=
+    endif
+
+    ifeq ($(PLATFORM),PSP2)
         SDLCONFIG :=
     endif
 
@@ -989,12 +1022,17 @@ ifeq ($(PLATFORM),WINDOWS)
     # -lshfolder
 else ifeq ($(PLATFORM),WII)
     LIBS += -laesnd_tueidj -lfat -lwiiuse -lbte -lwiikeyboard -logc
+else ifeq ($(PLATFORM),PSP2)
+    LIBS += -lSceDisplay_stub -lSceCtrl_stub -lSceAudio_stub -lSceAudioIn_stub \
+            -lSceSysmodule_stub -lSceGxm_stub -lSceCommonDialog_stub -lSceAppMgr_stub \
+            -lSceAppUtil_stub -lSceTouch_stub -lSceHid_stub -lSceMotion_stub -lScePower_stub \
+            -lSceProcessmgr_stub -lSceIme_stub -lSceKernelDmacMgr_stub -lSceLibKernel_stub
 else ifeq ($(SUBPLATFORM),LINUX)
     LIBS += -lrt -latomic
 endif
 
 ifeq (,$(filter $(PLATFORM),WINDOWS WII))
-    ifneq ($(PLATFORM),BSD)
+    ifeq (,$(filter $(PLATFORM),BSD PSP2))
         LIBS += -ldl
     endif
     ifneq ($(PLATFORM),DARWIN)

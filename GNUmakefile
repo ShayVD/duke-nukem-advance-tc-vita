@@ -297,6 +297,10 @@ else
     engine_excl += wiibits.cpp
 endif
 
+ifneq ($(PLATFORM),PSP2)
+    engine_excl += vitabits.cpp
+endif
+
 ifneq ($(RENDERTYPE),SDL)
     engine_excl += sdlayer.cpp
 endif
