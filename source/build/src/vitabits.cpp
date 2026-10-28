@@ -32,8 +32,9 @@ static int vita_argc;
 
 static void vita_addarg(char const *arg)
 {
+    // Runs before engineSetupAllocator(), so Xstrdup can't be used yet.
     if (vita_argc < VITA_MAX_ARGS)
-        vita_argv[vita_argc++] = Xstrdup(arg);
+        vita_argv[vita_argc++] = strdup(arg);
 }
 
 static int vita_isdir(char const *path)
