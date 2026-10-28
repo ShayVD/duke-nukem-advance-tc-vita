@@ -85,6 +85,12 @@ char quitevent=0, appactive=1, novideo=0;
 
 // video
 static SDL_Surface *sdl_surface/*=NULL*/;
+#ifdef __PSP2__
+// SDL's renderer-backed window surface fails to update on Vita, so present
+// through the GXM renderer directly. sdl_surface is then a plain RAM surface.
+static SDL_Renderer *vita_renderer;
+static SDL_Texture *vita_texture;
+#endif
 
 static vec2_t sdl_resize;
 static int sdl_minimized;
@@ -1538,6 +1544,17 @@ static void destroy_window_resources()
     if (sdl_context)
         SDL_GL_DeleteContext(sdl_context);
     sdl_context = NULL;
+#ifdef __PSP2__
+    if (vita_texture)
+        SDL_DestroyTexture(vita_texture);
+    vita_texture = NULL;
+    if (vita_renderer)
+        SDL_DestroyRenderer(vita_renderer);
+    vita_renderer = NULL;
+    if (sdl_surface)
+        SDL_FreeSurface(sdl_surface);
+    sdl_surface = NULL;
+#endif
     if (sdl_window)
         SDL_DestroyWindow(sdl_window);
     sdl_window = NULL;
@@ -1913,6 +1930,28 @@ int32_t videoSetMode(int32_t x, int32_t y, int32_t c, int32_t fs)
 #endif  // defined USE_OPENGL
     {
         // init
+#ifdef __PSP2__
+        sdl_window = SDL_CreateWindow("", 0, 0, x, y, SDL_WINDOW_FULLSCREEN);
+        if (!sdl_window)
+            SDL2_VIDEO_ERR("SDL_CreateWindow");
+
+        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "vita_gxm");
+        vita_renderer = SDL_CreateRenderer(sdl_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+        if (!vita_renderer)
+            SDL2_VIDEO_ERR("SDL_CreateRenderer");
+
+        SDL_RendererInfo rendererinfo;
+        if (!SDL_GetRendererInfo(vita_renderer, &rendererinfo))
+            VLOG_F(LOG_GFX, "Using SDL renderer '%s'.", rendererinfo.name);
+
+        vita_texture = SDL_CreateTexture(vita_renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, x, y);
+        if (!vita_texture)
+            SDL2_VIDEO_ERR("SDL_CreateTexture");
+
+        sdl_surface = SDL_CreateRGBSurfaceWithFormat(0, x, y, 32, SDL_PIXELFORMAT_ABGR8888);
+        if (!sdl_surface)
+            SDL2_VIDEO_ERR("SDL_CreateRGBSurfaceWithFormat");
+#else
         sdl_window = SDL_CreateWindow("", g_windowPosValid ? g_windowPos.x : (int)SDL_WINDOWPOS_CENTERED_DISPLAY(display),
                                           g_windowPosValid ? g_windowPos.y : (int)SDL_WINDOWPOS_CENTERED_DISPLAY(display), x, y,
                                       SDL_WINDOW_RESIZABLE | borderless);
@@ -1922,6 +1961,7 @@ int32_t videoSetMode(int32_t x, int32_t y, int32_t c, int32_t fs)
         sdl_surface = SDL_GetWindowSurface(sdl_window);
         if (!sdl_surface)
             SDL2_VIDEO_ERR("SDL_GetWindowSurface");
+#endif
     }
 
     setvideomode_sdlcommonpost(x, y, c, fs, regrab);
@@ -2187,38 +2227,14 @@ void videoShowFrame(int32_t w)
 
     if (SDL_MUSTLOCK(sdl_surface)) SDL_LockSurface(sdl_surface);
     softsurface_blitBuffer((uint32_t*) sdl_surface->pixels, sdl_surface->format->BitsPerPixel);
-#ifdef __PSP2__
-    // Temporary: report presented frames and whether they contain anything but black.
-    {
-        static uint32_t frames, lastlog;
-        frames++;
-        uint32_t const now = timerGetTicks();
-        if (now - lastlog >= 5000)
-        {
-            uint32_t const *px = (uint32_t const *)sdl_surface->pixels;
-            int const npx = sdl_surface->w * sdl_surface->h;
-            int lit = 0;
-            for (int i = 0; i < npx; i += 97)
-                lit += (px[i] & 0xffffff) != 0;
-            uint8_t const *src = softsurface_getBuffer();
-            vec2_t const res = softsurface_getBufferResolution();
-            int srclit = 0;
-            for (int i = 0; i < res.x * res.y; i += 97)
-                srclit += src[i] != 0;
-            LOG_F(INFO, "vita frame: %u frames, surface %dx%d bpp %d fmt %s, lit samples %d, 8-bit lit samples %d",
-                  frames, sdl_surface->w, sdl_surface->h, sdl_surface->format->BitsPerPixel,
-                  SDL_GetPixelFormatName(sdl_surface->format->format), lit, srclit);
-            lastlog = now;
-        }
-    }
-#endif
     if (SDL_MUSTLOCK(sdl_surface)) SDL_UnlockSurface(sdl_surface);
-#if SDL_MAJOR_VERSION >= 2
+#if defined __PSP2__
+    SDL_UpdateTexture(vita_texture, NULL, sdl_surface->pixels, sdl_surface->pitch);
+    SDL_RenderCopy(vita_renderer, vita_texture, NULL, NULL);
+    SDL_RenderPresent(vita_renderer);
+#elif SDL_MAJOR_VERSION >= 2
     if (SDL_UpdateWindowSurface(sdl_window))
     {
-#ifdef __PSP2__
-        LOG_F(ERROR, "SDL_UpdateWindowSurface: %s", SDL_GetError());
-#endif
         // If a fullscreen X11 window is minimized then this may be required.
         // FIXME: What to do if this fails...
         sdl_surface = SDL_GetWindowSurface(sdl_window);

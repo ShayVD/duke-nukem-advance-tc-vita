@@ -6835,20 +6835,14 @@ int app_main(int argc, char const* const* argv)
         Xfree(m);
     g_defModules.clear();
 
-#ifdef __PSP2__
-    LOG_F(INFO, "vita: caching sounds");
-#endif
+    // Precaching every sound takes ~25 s from the Vita's memory card; they load on first use instead.
+#ifndef __PSP2__
     cacheAllSounds();
-#ifdef __PSP2__
-    LOG_F(INFO, "vita: engine post-init");
 #endif
 
     if (enginePostInit())
         G_FatalEngineInitError();
 
-#ifdef __PSP2__
-    LOG_F(INFO, "vita: post-load palette");
-#endif
     G_PostLoadPalette();
 
     tileDelete(MIRROR);
@@ -6880,9 +6874,6 @@ int app_main(int argc, char const* const* argv)
     CONFIG_ReadSetup();
 
     char const * rtsname = g_rtsNamePtr ? g_rtsNamePtr : ud.rtsname;
-#ifdef __PSP2__
-    LOG_F(INFO, "vita: RTS init");
-#endif
     RTS_Init(rtsname);
 
     ud.last_level = -1;

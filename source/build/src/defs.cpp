@@ -15,7 +15,6 @@
 #include "kplib.h"
 #include "lz4.h"
 #include "common.h"
-#include "timer.h"
 #include "mdsprite.h"  // md3model_t
 #include "colmatch.h"
 #include "screentext.h"
@@ -505,15 +504,6 @@ static int32_t defsparser(scriptfile *script)
         {
             startwin_puts(".");
             iter = 0;
-        }
-#endif
-#ifdef __PSP2__
-        // Temporary: trace .def parsing to find where Vita startup stalls.
-        {
-            static uint32_t vitaiter = 0;
-            if (++vitaiter % 100 == 0)
-                LOG_F(INFO, "def progress: %s:%d (%u tokens, %u ms)", script->filename,
-                      scriptfile_getlinum(script, script->textptr), vitaiter, timerGetTicks());
         }
 #endif
         handleevents();
