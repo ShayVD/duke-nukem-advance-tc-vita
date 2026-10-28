@@ -2752,14 +2752,25 @@ int32_t kzfindfile(char *filnam)
             if ((findata = readdir(hfind)) == NULL)
                 { closedir(hfind); hfind = NULL; if (!kzhashbuf) return 0; srchstat = 2; break; }
             i = wildstpathleng;
-            if (findata->d_type == DT_DIR)
+#ifdef __PSP2__
+            // Vita's dirent has no d_type
+            char statpath[BMAX_PATH];
+            struct stat st;
+            Bsnprintf(statpath, sizeof(statpath), "%.*s%s", i, filnam, findata->d_name);
+            int const isdir = stat(statpath, &st) == 0 && S_ISDIR(st.st_mode);
+            int const isfile = !isdir;
+#else
+            int const isdir = findata->d_type == DT_DIR;
+            int const isfile = (findata->d_type == DT_REG) || (findata->d_type == DT_LNK);
+#endif
+            if (isdir)
                 { if (findata->d_name[0] == '.' && !findata->d_name[1]) continue; } //skip .
-            else if ((findata->d_type == DT_REG) || (findata->d_type == DT_LNK))
+            else if (isfile)
                 { if (findata->d_name[0] == '.') continue; } //skip hidden (dot) files
             else continue; //skip devices and fifos and such
             if (!wildmatch(findata->d_name,&newildst[wildstpathleng])) continue;
             strcpy(&filnam[i],findata->d_name);
-            if (findata->d_type == DT_DIR) strcat(&filnam[i],"/");
+            if (isdir) strcat(&filnam[i],"/");
 #endif
             return 1;
         }

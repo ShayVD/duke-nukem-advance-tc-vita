@@ -22,7 +22,9 @@
 #ifdef __sun
 #include <sys/filio.h>
 #endif
+#ifndef __PSP2__
 #include <sys/ioctl.h>
+#endif
 #include <sys/socket.h>
 #include <netdb.h>
 #define SOCKET int
