@@ -11,7 +11,12 @@ VERSION=00.01
 
 cd "$(dirname "$0")/../.."
 
-make PLATFORM=PSP2 LTO=0 -j"$(nproc)" eduke32.elf
+if ! make PLATFORM=PSP2 LTO=0 -k -j"$(nproc)" eduke32.elf > build-vita.log 2>&1; then
+    tail -n 40 build-vita.log
+    echo "==== error summary ===="
+    grep -E "error|undefined reference" build-vita.log | sort -u | head -n 120
+    exit 1
+fi
 
 out=build/vita
 rm -rf "$out"
