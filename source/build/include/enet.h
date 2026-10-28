@@ -166,6 +166,15 @@
     #define MSG_NOSIGNAL 0
     #endif
 
+    #ifdef __PSP2__
+    // Vita's network stack is IPv4 only; these let the IPv6 paths compile.
+    #ifndef SOMAXCONN
+    #define SOMAXCONN 128
+    #endif
+    static const struct in6_addr enet_vita_in6addr_any = {};
+    #define in6addr_any enet_vita_in6addr_any
+    #endif
+
     #ifdef MSG_MAXIOVLEN
     #define ENET_BUFFER_MAXIMUM MSG_MAXIOVLEN
     #endif
