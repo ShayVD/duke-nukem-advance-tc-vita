@@ -975,6 +975,11 @@ void joyScanDevices()
 #endif
                 joystick.isGameController = 1;
 
+#ifdef __PSP2__
+                // The handheld has no L2/R2; vita_updatetouchtriggers() drives these axes from the touch panels.
+                joystick.numAxes = SDL_CONTROLLER_AXIS_MAX;
+#endif
+
                 if (gameControllerDBLoaded == false)
                     LoadSDLControllerDB();
 
@@ -1186,8 +1191,13 @@ const char *joyGetName(int32_t what, int32_t num)
                     "Left Stick Y-Axis",
                     "Right Stick X-Axis",
                     "Right Stick Y-Axis",
+#ifdef __PSP2__
+                    "L2 (Touch)",
+                    "R2 (Touch)",
+#else
                     "Left Trigger",
                     "Right Trigger",
+#endif
                     NULL
                 };
 
@@ -1207,6 +1217,19 @@ const char *joyGetName(int32_t what, int32_t num)
             {
                 static char const * buttonStrings[] =
                 {
+#ifdef __PSP2__
+                    "Cross",
+                    "Circle",
+                    "Square",
+                    "Triangle",
+                    "Select",
+                    "PS",
+                    "Start",
+                    "L3",
+                    "R3",
+                    "L",
+                    "R",
+#else
                     "A",
                     "B",
                     "X",
@@ -1218,6 +1241,7 @@ const char *joyGetName(int32_t what, int32_t num)
                     "Right Stick",
                     "Left Shoulder",
                     "Right Shoulder",
+#endif
                     "D-Pad Up",
                     "D-Pad Down",
                     "D-Pad Left",
@@ -2229,7 +2253,17 @@ void videoShowFrame(int32_t w)
     softsurface_blitBuffer((uint32_t*) sdl_surface->pixels, sdl_surface->format->BitsPerPixel);
     if (SDL_MUSTLOCK(sdl_surface)) SDL_UnlockSurface(sdl_surface);
 #if defined __PSP2__
-    SDL_UpdateTexture(vita_texture, NULL, sdl_surface->pixels, sdl_surface->pitch);
+    vec2_t const res = softsurface_getBufferResolution();
+    int texw, texh;
+
+    if (SDL_QueryTexture(vita_texture, NULL, NULL, &texw, &texh) || texw != res.x || texh != res.y)
+    {
+        // the render resolution changed (r_upscalefactor)
+        SDL_DestroyTexture(vita_texture);
+        vita_texture = SDL_CreateTexture(vita_renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, res.x, res.y);
+    }
+
+    SDL_UpdateTexture(vita_texture, NULL, sdl_surface->pixels, res.x * sizeof(uint32_t));
     SDL_RenderCopy(vita_renderer, vita_texture, NULL, NULL);
     SDL_RenderPresent(vita_renderer);
 #elif SDL_MAJOR_VERSION >= 2
@@ -2839,6 +2873,25 @@ int32_t handleevents_pollsdl(void)
 }
 #endif
 
+#ifdef __PSP2__
+static void vita_updatetouchtriggers(void)
+{
+    if (!joystick.isGameController || !joystick.pAxis || joystick.numAxes <= SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
+        return;
+
+    static int lastzones;
+    int const zones = appactive ? vita_readtouchtriggers() : 0;
+
+    // Only write on change so a PS TV controller's real triggers still work.
+    if (zones == lastzones)
+        return;
+
+    joystick.pAxis[SDL_CONTROLLER_AXIS_TRIGGERLEFT]  = (zones & VITA_TOUCH_L2) ? INT16_MAX : 0;
+    joystick.pAxis[SDL_CONTROLLER_AXIS_TRIGGERRIGHT] = (zones & VITA_TOUCH_R2) ? INT16_MAX : 0;
+    lastzones = zones;
+}
+#endif
+
 int32_t handleevents(void)
 {
 #ifdef __ANDROID__
@@ -2908,6 +2961,10 @@ int32_t handleevents(void)
     }
 
     rv = handleevents_pollsdl();
+
+#ifdef __PSP2__
+    vita_updatetouchtriggers();
+#endif
 
     inputchecked = 0;
     timerUpdateClock();

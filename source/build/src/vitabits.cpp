@@ -7,6 +7,7 @@
 
 #include <psp2/kernel/processmgr.h>
 #include <psp2/power.h>
+#include <psp2/touch.h>
 #include <errno.h>
 #include <malloc.h>
 #include <sys/stat.h>
@@ -92,6 +93,48 @@ void vita_preinit(int *argc, char ***argv)
 
     *argc = vita_argc;
     *argv = vita_argv;
+}
+
+// Touch panel coordinates: both panels report x in 0..1919; the front reports y in 0..1087.
+#define VITA_TOUCH_WIDTH 1920
+#define VITA_FRONT_CORNER_W 480
+#define VITA_FRONT_CORNER_H 272
+
+int vita_readtouchtriggers(void)
+{
+    static int initialized;
+
+    if (!initialized)
+    {
+        sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_START);
+        sceTouchSetSamplingState(SCE_TOUCH_PORT_BACK, SCE_TOUCH_SAMPLING_STATE_START);
+        initialized = 1;
+    }
+
+    int zones = 0;
+    SceTouchData touch;
+
+    if (sceTouchPeek(SCE_TOUCH_PORT_BACK, &touch, 1) > 0)
+    {
+        for (unsigned i = 0; i < touch.reportNum; i++)
+            zones |= touch.report[i].x < VITA_TOUCH_WIDTH / 2 ? VITA_TOUCH_L2 : VITA_TOUCH_R2;
+    }
+
+    if (sceTouchPeek(SCE_TOUCH_PORT_FRONT, &touch, 1) > 0)
+    {
+        for (unsigned i = 0; i < touch.reportNum; i++)
+        {
+            if (touch.report[i].y >= VITA_FRONT_CORNER_H)
+                continue;
+
+            if (touch.report[i].x < VITA_FRONT_CORNER_W)
+                zones |= VITA_TOUCH_L2;
+            else if (touch.report[i].x >= VITA_TOUCH_WIDTH - VITA_FRONT_CORNER_W)
+                zones |= VITA_TOUCH_R2;
+        }
+    }
+
+    return zones;
 }
 
 #endif

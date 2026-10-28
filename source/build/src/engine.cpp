@@ -11865,8 +11865,14 @@ static void videoAllocateBuffers(void)
         else
 # endif
         {
+#ifdef __PSP2__
+            // The Vita's GPU scales the frame up, so convert at render resolution.
+            softsurface_initialize({ xdim, ydim },
+                                   { xdim, ydim });
+#else
             softsurface_initialize({ xdim, ydim },
                                    { xres, yres });
+#endif
         }
     }
 #endif
