@@ -141,7 +141,9 @@
     #define ENET_SOCKETSET_CHECK(sockset, socket)  FD_ISSET(socket, &(sockset))
 #else
     #include <sys/types.h>
+    #ifndef __PSP2__
     #include <sys/ioctl.h>
+    #endif
     #include <sys/time.h>
     #include <sys/socket.h>
     #include <poll.h>

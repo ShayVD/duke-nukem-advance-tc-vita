@@ -1,7 +1,9 @@
 #ifndef texcache_h_
 # define texcache_h_
 
-#include "mio.hpp"
+#ifdef USE_OPENGL
+# include "mio.hpp"
+#endif
 #include "polymost.h"
 #include "mdsprite.h"
 

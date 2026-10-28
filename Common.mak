@@ -908,6 +908,7 @@ else ifeq ($(PLATFORM),WII)
     LIBDIRS += -L$(PORTLIBS)/lib -Lplatform/Wii/lib
 else ifeq ($(PLATFORM),PSP2)
     COMPILERFLAGS += -I$(VITASDK)/arm-vita-eabi/include
+    COMPILERFLAGS += -I$(VITASDK)/arm-vita-eabi/include/SDL2
     LIBDIRS += -L$(VITASDK)/arm-vita-eabi/lib
 endif
 
