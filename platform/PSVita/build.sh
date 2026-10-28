@@ -11,7 +11,7 @@ VERSION=00.01
 
 cd "$(dirname "$0")/../.."
 
-make PLATFORM=PSP2 LTO=0 -j"$(nproc)" eduke32
+make PLATFORM=PSP2 LTO=0 -j"$(nproc)" eduke32.elf
 
 out=build/vita
 rm -rf "$out"

@@ -407,6 +407,8 @@ else ifeq ($(PLATFORM),PSP2)
     override USE_MIMALLOC := 0
     override STARTUP_WINDOW := 0
     override NOASM := 1
+    # vita-elf-create needs the relocations that strip would remove
+    override STRIP :=
 else ifeq ($(PLATFORM),$(filter $(PLATFORM),DINGOO GCW))
     override USE_OPENGL := 0
     override NOASM := 1
