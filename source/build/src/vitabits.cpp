@@ -7,6 +7,8 @@
 
 #include <psp2/kernel/processmgr.h>
 #include <psp2/power.h>
+#include <errno.h>
+#include <malloc.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -14,6 +16,13 @@ extern "C" {
 // Leave room for SDL's GXM buffers and the audio thread outside the newlib heap.
 int _newlib_heap_size_user = 300 * 1024 * 1024;
 unsigned int sceUserMainThreadStackSize = 4 * 1024 * 1024;
+}
+
+// newlib on Vita has memalign but not posix_memalign
+extern "C" int posix_memalign(void **memptr, size_t alignment, size_t size)
+{
+    *memptr = memalign(alignment, size);
+    return *memptr ? 0 : ENOMEM;
 }
 
 #define VITA_MAX_ARGS 64

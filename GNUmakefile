@@ -156,6 +156,10 @@ imgui_obj := $(obj)/$(imgui)
 
 imgui_excl :=
 
+ifeq (0,$(USE_OPENGL))
+    imgui_excl += imgui_impl_opengl3.cpp
+endif
+
 ifneq ($(RENDERTYPE),SDL)
     imgui_excl += imgui_impl_sdl2.cpp
 endif

@@ -1026,6 +1026,8 @@ ifeq ($(PLATFORM),WINDOWS)
 else ifeq ($(PLATFORM),WII)
     LIBS += -laesnd_tueidj -lfat -lwiiuse -lbte -lwiikeyboard -logc
 else ifeq ($(PLATFORM),PSP2)
+    # vitasdk's SDL2 is built with vitaGL support, so its GL backend needs these too
+    LIBS += -lvitaGL -lvitashark -lSceShaccCgExt -lmathneon -ltaihen_stub -lSceShaccCg_stub
     LIBS += -lSceDisplay_stub -lSceCtrl_stub -lSceAudio_stub -lSceAudioIn_stub \
             -lSceSysmodule_stub -lSceGxm_stub -lSceCommonDialog_stub -lSceAppMgr_stub \
             -lSceAppUtil_stub -lSceTouch_stub -lSceHid_stub -lSceMotion_stub -lScePower_stub \
