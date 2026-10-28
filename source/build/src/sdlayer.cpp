@@ -2187,10 +2187,38 @@ void videoShowFrame(int32_t w)
 
     if (SDL_MUSTLOCK(sdl_surface)) SDL_LockSurface(sdl_surface);
     softsurface_blitBuffer((uint32_t*) sdl_surface->pixels, sdl_surface->format->BitsPerPixel);
+#ifdef __PSP2__
+    // Temporary: report presented frames and whether they contain anything but black.
+    {
+        static uint32_t frames, lastlog;
+        frames++;
+        uint32_t const now = timerGetTicks();
+        if (now - lastlog >= 5000)
+        {
+            uint32_t const *px = (uint32_t const *)sdl_surface->pixels;
+            int const npx = sdl_surface->w * sdl_surface->h;
+            int lit = 0;
+            for (int i = 0; i < npx; i += 97)
+                lit += (px[i] & 0xffffff) != 0;
+            uint8_t const *src = softsurface_getBuffer();
+            vec2_t const res = softsurface_getBufferResolution();
+            int srclit = 0;
+            for (int i = 0; i < res.x * res.y; i += 97)
+                srclit += src[i] != 0;
+            LOG_F(INFO, "vita frame: %u frames, surface %dx%d bpp %d fmt %s, lit samples %d, 8-bit lit samples %d",
+                  frames, sdl_surface->w, sdl_surface->h, sdl_surface->format->BitsPerPixel,
+                  SDL_GetPixelFormatName(sdl_surface->format->format), lit, srclit);
+            lastlog = now;
+        }
+    }
+#endif
     if (SDL_MUSTLOCK(sdl_surface)) SDL_UnlockSurface(sdl_surface);
 #if SDL_MAJOR_VERSION >= 2
     if (SDL_UpdateWindowSurface(sdl_window))
     {
+#ifdef __PSP2__
+        LOG_F(ERROR, "SDL_UpdateWindowSurface: %s", SDL_GetError());
+#endif
         // If a fullscreen X11 window is minimized then this may be required.
         // FIXME: What to do if this fails...
         sdl_surface = SDL_GetWindowSurface(sdl_window);
