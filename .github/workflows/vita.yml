@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      addr2line:
+        description: "Space-separated ELF addresses to symbolize (for crash dumps)"
+        required: false
+        default: ""
 
 jobs:
   vpk:
@@ -23,6 +28,14 @@ jobs:
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           ./platform/PSVita/build.sh
+
+      - name: Symbolize crash addresses
+        if: ${{ inputs.addr2line != '' }}
+        run: |
+          for a in ${{ inputs.addr2line }}; do
+            echo "== $a"
+            "$VITASDK/bin/arm-vita-eabi-addr2line" -f -C -i -e eduke32.elf "$a"
+          done
 
       - uses: actions/upload-artifact@v4
         with:
