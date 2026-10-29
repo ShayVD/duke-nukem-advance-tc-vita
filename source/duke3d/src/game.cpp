@@ -48,6 +48,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "android.h"
 #endif
 
+#ifdef __PSP2__
+#include "vitabits.h"
+#endif
+
 #include "vfs.h"
 
 // Uncomment to prevent anything except mirrors from drawing. It is sensible to
@@ -4638,6 +4642,25 @@ void G_PrintCurrentMusic(void)
     P_DoQuote(QUOTE_MUSIC, g_player[myconnectindex].ps);
 }
 
+#ifdef __PSP2__
+// Opens the pause menu when the player leaves for the LiveArea, the same way Escape does,
+// so the level doesn't keep running (or catch up on the missed time) behind the system UI.
+static void G_VitaPauseForSystemUI(void)
+{
+    auto &myplayer = *g_player[myconnectindex].ps;
+
+    if ((myplayer.gm & (MODE_GAME|MODE_MENU|MODE_TYPE|MODE_DEMO)) != MODE_GAME || g_netServer || ud.multimode > 1 || ud.recstat == 2)
+        return;
+
+    S_PauseSounds(true);
+
+    Menu_Open(myconnectindex);
+    ready2send = 0;
+    Menu_Change(MENU_MAIN_INGAME);
+    screenpeek = myconnectindex;
+}
+#endif
+
 void G_HandleLocalKeys(void)
 {
 //    CONTROL_ProcessBinds();
@@ -7100,6 +7123,11 @@ MAIN_LOOP_RESTART:
             KB_KeyDown[sc_Escape] = 1;
             quitevent = 0;
         }
+
+#ifdef __PSP2__
+        if (vita_systemuitookover())
+            G_VitaPauseForSystemUI();
+#endif
 
         //if (g_restartFrameRoutine)
         //{

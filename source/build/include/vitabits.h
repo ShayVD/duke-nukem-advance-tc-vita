@@ -23,6 +23,10 @@ enum
 // Returns the VITA_TOUCH_* zones currently pressed.
 int vita_readtouchtriggers(void);
 
+// Returns 1 once each time the system UI (LiveArea, the PS button menu) takes over the screen,
+// or the app comes back from being suspended, so the game can pause itself.
+int vita_systemuitookover(void);
+
 #endif
 
 #endif // vitabits_h_
