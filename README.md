@@ -141,7 +141,8 @@ adds:
   a button, including the controller setup menu.
 - The mod's on-screen prompts show Vita buttons instead of keyboard keys. For
   example, the new game screens say `[CROSS]` and `[SELECT]` instead of
-  `[ENTER]` and `[BACKSPACE]`. This is done in the engine, so the mod's files
+  `[ENTER]` and `[BACKSPACE]`, and the death screen says `PRESS CROSS TO
+  RESTART LEVEL`. This is done in the engine, so the mod's files
   stay untouched.
 - **Optional gyro aiming**, with its own sensitivity setting.
 
