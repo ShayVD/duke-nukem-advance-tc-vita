@@ -270,6 +270,10 @@ void CONFIG_SetDefaults(void)
     ud.config.JoystickAimWeight = 4;
     ud.config.JoystickViewCentering = 4;
     ud.config.JoystickAimAssist = 1;
+#ifdef __PSP2__
+    ud.config.GyroAiming      = 0;
+    ud.config.GyroSensitivity = 1.f;
+#endif
     ud.config.MouseBias       = 0;
     ud.config.MusicDevice     = ASS_AutoDetect;
     ud.config.MusicToggle     = 1;

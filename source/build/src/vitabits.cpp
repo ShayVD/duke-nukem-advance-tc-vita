@@ -7,6 +7,7 @@
 
 #include <psp2/appmgr.h>
 #include <psp2/kernel/processmgr.h>
+#include <psp2/motion.h>
 #include <psp2/power.h>
 #include <psp2/touch.h>
 #include <errno.h>
@@ -166,6 +167,40 @@ int vita_systemuitookover(void)
     }
 
     return tookover;
+}
+
+// Ignore the slow drift left in a resting gyro.
+#define VITA_GYRO_DEADZONE 0.015f
+
+static float vita_gyrodeadzone(float v)
+{
+    if (v > VITA_GYRO_DEADZONE)
+        return v - VITA_GYRO_DEADZONE;
+    if (v < -VITA_GYRO_DEADZONE)
+        return v + VITA_GYRO_DEADZONE;
+    return 0.f;
+}
+
+void vita_readgyro(float *yaw, float *pitch)
+{
+    static int initialized;
+
+    if (!initialized)
+    {
+        sceMotionStartSampling();
+        initialized = 1;
+    }
+
+    SceMotionSensorState sensor;
+
+    if (sceMotionGetSensorState(&sensor, 1) < 0)
+    {
+        *yaw = *pitch = 0.f;
+        return;
+    }
+
+    *yaw   = vita_gyrodeadzone(sensor.gyro.y);
+    *pitch = vita_gyrodeadzone(sensor.gyro.x);
 }
 
 #endif

@@ -26,6 +26,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "input.h"
 #include "savegame.h"
 
+#ifdef __PSP2__
+# include "vitabits.h"
+#endif
+
 #ifdef __ANDROID__
 #include "android.h"
 #endif
@@ -3304,6 +3308,25 @@ void P_GetInput(int const playerNum)
         input.fvel = -(info.mousey >> 3);
 
     if (ud.mouseflip) input.q16horz = -input.q16horz;
+
+#ifdef __PSP2__
+    if (ud.config.GyroAiming && elapsedInputTicks)
+    {
+        // At 100% sensitivity, turning the Vita by some angle turns the view twice as far.
+        constexpr float gyroBaseScale = 2.f;
+
+        float yaw, pitch;
+        vita_readgyro(&yaw, &pitch);
+
+        // Cap the step so a stale timestamp after a pause can't snap the view.
+        float const seconds = min<double>(elapsedInputTicks, timerGetNanoTickRate() / 10) / (double)timerGetNanoTickRate();
+        float const radians = seconds * gyroBaseScale * ud.config.GyroSensitivity;
+
+        // Build angles are 2048 units per turn, and the pitch angle below is 1024 units per turn.
+        input.q16avel = fix16_ssub(input.q16avel, fix16_from_float(yaw * radians * (1024.f / fPI)));
+        input.q16horz = fix16_sadd(input.q16horz, fix16_from_float(pitch * radians * (512.f / fPI)));
+    }
+#endif
 
     input.q16horz = fix16_ssub(input.q16horz, fix16_from_float(scaleToInterval(info.dpitch * 16.0 / analogExtent)));
     input.svel -= lrint(scaleToInterval(info.dx * keyMove / analogExtent));
