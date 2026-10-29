@@ -88,7 +88,23 @@ void vita_preinit(int *argc, char ***argv)
         vita_addarg("-usecwd");
         vita_addarg("-nosetup");
 
-        if (vita_isdir(VITA_DATA_DIR "/DNA4PC"))
+        // A VPK built with the game data inside it reads it from there.
+        if (vita_isdir(VITA_BUNDLED_DIR))
+        {
+            vita_addarg("-j");
+            vita_addarg(VITA_BUNDLED_DIR);
+        }
+
+        int const bundledmod = vita_isdir(VITA_BUNDLED_DIR "/DNA4PC");
+
+        if (bundledmod)
+        {
+            vita_addarg("-j");
+            vita_addarg(VITA_BUNDLED_DIR "/DNA4PC");
+        }
+
+        // The mod folder on the memory card is still used when present, and takes priority over the bundled one.
+        if (vita_isdir(VITA_DATA_DIR "/DNA4PC") || bundledmod)
         {
             vita_addarg("-game_dir");
             vita_addarg("DNA4PC");

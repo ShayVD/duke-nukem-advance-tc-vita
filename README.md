@@ -15,6 +15,7 @@ yourself: the Duke Nukem 3D data file and the DNA4PC mod.
 - [Quick start](#quick-start)
 - [What you need](#what-you-need)
 - [Installing](#installing)
+- [All-in-one VPK](#all-in-one-vpk)
 - [Controls](#controls)
 - [Vita settings](#vita-settings)
 - [What this port adds for the Vita](#what-this-port-adds-for-the-vita)
@@ -84,6 +85,25 @@ need to be signed in to GitHub). It's a zip that holds `dna-vita.vpk` and
 4. **Launch the bubble.** The game skips the EDuke32 launcher and boots
    straight into Duke Nukem Advance. The first start takes about 13 seconds,
    and loading a level about 7 seconds.
+
+## All-in-one VPK
+
+If you'd rather install a single file, you can add your own game data to the
+VPK on your computer, so installing it is the only step on the Vita:
+
+```sh
+./platform/PSVita/bundle_data.sh dna-vita.vpk <data folder>
+```
+
+`<data folder>` is a folder on your computer laid out like `ux0:data/dna/`
+above, with `DUKE3D.GRP` and the `DNA4PC` folder in it. The script writes
+`dna-vita-full.vpk` (about 80 MB) next to `dna-vita.vpk`. It only needs `zip`,
+which macOS and most Linux systems already have.
+
+The data is installed with the app, read-only. Settings, saves and the log
+still go to `ux0:data/dna/`, and anything you put in `ux0:data/dna/DNA4PC/`
+takes priority over the bundled copy. The all-in-one VPK contains the
+commercial Duke Nukem 3D data, so keep it to yourself.
 
 ## Controls
 
