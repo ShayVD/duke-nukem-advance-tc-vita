@@ -90,6 +90,87 @@ static SDL_Surface *sdl_surface/*=NULL*/;
 // through the GXM renderer directly. sdl_surface is then a plain RAM surface.
 static SDL_Renderer *vita_renderer;
 static SDL_Texture *vita_texture;
+
+// videoShowFrame() hands each frame to a thread on another core, which converts it to 32-bit
+// and presents it while the game renders the next one.
+static SDL_Thread *vita_presentthread;
+static SDL_sem *vita_framefree, *vita_frameready;
+static SDL_mutex *vita_presentlock;
+static uint8_t *vita_frame;
+static int32_t vita_framesize;
+static vec2_t vita_frameres;
+static uint32_t vita_palette[256], vita_framepalette[256];
+
+// Converts and presents the frame in vita_frame.
+static void vita_presentframe(void)
+{
+    SDL_LockMutex(vita_presentlock);
+
+    vec2_t const res = vita_frameres;
+    int texw, texh;
+
+    if (vita_texture && (SDL_QueryTexture(vita_texture, NULL, NULL, &texw, &texh) || texw != res.x || texh != res.y))
+    {
+        // the render resolution changed (r_upscalefactor)
+        SDL_DestroyTexture(vita_texture);
+        vita_texture = NULL;
+    }
+
+    if (!vita_texture && vita_renderer)
+    {
+        vita_texture = SDL_CreateTexture(vita_renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, res.x, res.y);
+        if (vita_texture)
+            SDL_SetTextureBlendMode(vita_texture, SDL_BLENDMODE_NONE);
+    }
+
+    void *pixels;
+    int pitch;
+
+    // The GXM renderer's streaming textures lock straight to their GPU memory.
+    bool const converted = vita_texture && !SDL_LockTexture(vita_texture, NULL, &pixels, &pitch);
+
+    if (converted)
+    {
+        vita_convertframe((uint32_t *)pixels, pitch, vita_frame, res.x, res.y, vita_framepalette);
+        SDL_UnlockTexture(vita_texture);
+    }
+
+    // vita_frame is free to refill now, so the game can carry on while this frame is presented.
+    SDL_SemPost(vita_framefree);
+
+    if (converted)
+    {
+        SDL_RenderCopy(vita_renderer, vita_texture, NULL, NULL);
+        SDL_RenderPresent(vita_renderer);
+    }
+
+    SDL_UnlockMutex(vita_presentlock);
+}
+
+static int vita_presentloop(void *)
+{
+    vita_setthreadcore(1);
+
+    for (;;)
+    {
+        SDL_SemWait(vita_frameready);
+        vita_presentframe();
+    }
+
+    return 0;
+}
+
+// Waits until the present thread is idle with no frame pending, so the renderer can be changed.
+static void vita_presentflush(void)
+{
+    if (!vita_presentthread)
+        return;
+
+    SDL_SemWait(vita_framefree);
+    SDL_LockMutex(vita_presentlock);
+    SDL_UnlockMutex(vita_presentlock);
+    SDL_SemPost(vita_framefree);
+}
 #endif
 
 static vec2_t sdl_resize;
@@ -623,6 +704,8 @@ int32_t videoSetVsync(int32_t newSync)
 #ifdef __PSP2__
     if (vita_renderer)
     {
+        vita_presentflush();
+
         // Switch in place: rebuilding the window and renderer takes seconds on the Vita.
         if (SDL_RenderSetVSync(vita_renderer, newSync != 0))
             LOG_F(WARNING, "Unable to configure VSync: %s", SDL_GetError());
@@ -1589,6 +1672,8 @@ static void destroy_window_resources()
         SDL_GL_DeleteContext(sdl_context);
     sdl_context = NULL;
 #ifdef __PSP2__
+    vita_presentflush();
+
     if (vita_texture)
         SDL_DestroyTexture(vita_texture);
     vita_texture = NULL;
@@ -1992,9 +2077,7 @@ int32_t videoSetMode(int32_t x, int32_t y, int32_t c, int32_t fs)
 
         vsync_renderlayer = vsync;
 
-        vita_texture = SDL_CreateTexture(vita_renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, x, y);
-        if (!vita_texture)
-            SDL2_VIDEO_ERR("SDL_CreateTexture");
+        // vita_presentloop() creates the texture at the render resolution.
 
         sdl_surface = SDL_CreateRGBSurfaceWithFormat(0, x, y, 32, SDL_PIXELFORMAT_ABGR8888);
         if (!sdl_surface)
@@ -2274,38 +2357,36 @@ void videoShowFrame(int32_t w)
     }
 
 #if defined __PSP2__
+    if (!vita_presentthread)
+    {
+        vita_framefree = SDL_CreateSemaphore(1);
+        vita_frameready = SDL_CreateSemaphore(0);
+        vita_presentlock = SDL_CreateMutex();
+        vita_presentthread = SDL_CreateThread(vita_presentloop, "present", NULL);
+
+        if (!vita_presentthread)
+            LOG_F(WARNING, "Unable to start the present thread, presenting on the main thread: %s", SDL_GetError());
+    }
+
     vec2_t const res = softsurface_getBufferResolution();
-    int texw, texh;
+    int32_t const size = res.x * res.y;
 
-    if (SDL_QueryTexture(vita_texture, NULL, NULL, &texw, &texh) || texw != res.x || texh != res.y)
+    SDL_SemWait(vita_framefree);
+
+    if (vita_framesize < size)
     {
-        // the render resolution changed (r_upscalefactor)
-        SDL_DestroyTexture(vita_texture);
-        vita_texture = SDL_CreateTexture(vita_renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, res.x, res.y);
+        vita_frame = (uint8_t *)Xrealloc(vita_frame, size);
+        vita_framesize = size;
     }
 
-    void *pixels;
-    int pitch;
+    Bmemcpy(vita_frame, softsurface_getBuffer(), size);
+    Bmemcpy(vita_framepalette, vita_palette, sizeof(vita_palette));
+    vita_frameres = res;
 
-    // The GXM renderer's streaming textures lock straight to their GPU memory, so palette
-    // conversion can write there and skip a full-frame copy through sdl_surface.
-    if (!SDL_LockTexture(vita_texture, NULL, &pixels, &pitch))
-    {
-        if (pitch == res.x * (int)sizeof(uint32_t))
-            softsurface_blitBuffer((uint32_t *)pixels, 32);
-        else
-        {
-            softsurface_blitBuffer((uint32_t *)sdl_surface->pixels, 32);
-
-            for (int i = 0; i < res.y; i++)
-                Bmemcpy((char *)pixels + i * pitch, (uint32_t *)sdl_surface->pixels + i * res.x, res.x * sizeof(uint32_t));
-        }
-
-        SDL_UnlockTexture(vita_texture);
-    }
-
-    SDL_RenderCopy(vita_renderer, vita_texture, NULL, NULL);
-    SDL_RenderPresent(vita_renderer);
+    if (vita_presentthread)
+        SDL_SemPost(vita_frameready);
+    else
+        vita_presentframe();
 #else
     if (SDL_MUSTLOCK(sdl_surface)) SDL_LockSurface(sdl_surface);
     softsurface_blitBuffer((uint32_t*) sdl_surface->pixels, sdl_surface->format->BitsPerPixel);
@@ -2342,6 +2423,12 @@ int32_t videoUpdatePalette(int32_t start, int32_t num)
     else
 #endif
     {
+#ifdef __PSP2__
+        // matches SDL_PIXELFORMAT_ABGR8888, the texture vita_presentloop() converts into
+        for (int i = 0; i < 256; i++)
+            vita_palette[i] = (uint8_t)curpalettefaded[i].r | ((uint8_t)curpalettefaded[i].g << 8)
+                            | ((uint8_t)curpalettefaded[i].b << 16) | 0xff000000u;
+#endif
         if (sdl_surface)
             softsurface_setPalette(curpalettefaded,
                                    sdl_surface->format->Rmask,
