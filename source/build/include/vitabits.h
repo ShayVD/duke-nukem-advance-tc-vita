@@ -23,6 +23,10 @@ enum
 // Returns the VITA_TOUCH_* zones currently pressed.
 int vita_readtouchtriggers(void);
 
+// Reads the gyroscope in radians per second, for a Vita held in landscape:
+// yaw is positive when turning left and pitch is positive when tilting the top edge towards you.
+void vita_readgyro(float *yaw, float *pitch);
+
 #endif
 
 #endif // vitabits_h_
