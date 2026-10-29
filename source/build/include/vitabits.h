@@ -31,6 +31,12 @@ int vita_systemuitookover(void);
 // yaw is positive when turning left and pitch is positive when tilting the top edge towards you.
 void vita_readgyro(float *yaw, float *pitch);
 
+// Pins the calling thread to one of the three CPU cores user code can run on (0-2).
+void vita_setthreadcore(int core);
+
+// Converts an 8-bit frame through palette into 32-bit pixels at dst, pitch bytes apart.
+void vita_convertframe(uint32_t *dst, int pitch, uint8_t const *src, int w, int h, uint32_t const *palette);
+
 #endif
 
 #endif // vitabits_h_
