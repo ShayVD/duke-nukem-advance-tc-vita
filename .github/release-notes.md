@@ -13,7 +13,7 @@ by branung and oasiz.
 2. Put `DUKE3D.GRP` and the `DNA4PC` folder in `ux0:data/dna/`, so that `ux0:data/dna/DNA4PC/EDUKE.CON` exists.
 3. Launch **Duke Nukem Advance**. If a file is missing, the game tells you which one.
 
-Full guide, controls and troubleshooting: see the [README](../../blob/main/README.md).
+Full guide, controls and troubleshooting: see the [README](https://github.com/ShayVD/duke-nukem-advance-tc-vita#readme).
 
 ### Features
 
