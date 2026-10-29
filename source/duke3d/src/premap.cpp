@@ -373,6 +373,9 @@ static void G_DoLoadScreen(const char *statustext, int percent)
     }
     else
     {
+        // With no loading tile (DNA turns it off), clear to black. Otherwise the last screen
+        // drawn, DNA's mission briefing, comes back at full brightness for the whole precache.
+        videoClearScreen(0);
         videoNextPage();
         return;
     }
