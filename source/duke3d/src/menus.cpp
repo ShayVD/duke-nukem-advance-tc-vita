@@ -627,11 +627,23 @@ static MenuLink_t MEO_DISPLAYSETUP_COLORCORR = { MENU_COLCORR, MA_Advance, };
 static MenuEntry_t ME_DISPLAYSETUP_COLORCORR = MAKE_MENUENTRY( "Color Correction", &MF_Redfont, &MEF_BigOptionsRt, &MEO_DISPLAYSETUP_COLORCORR, Link );
 
 
+#ifdef __PSP2__
+// Full renders at the screen's 960x544; Half renders at 480x272 and the GPU scales it up.
+static char const *MEOSN_DISPLAYSETUP_UPSCALING[] = { "Full", "Half" };
+#else
 static char const *MEOSN_DISPLAYSETUP_UPSCALING[] = { "None", "2x" };
+#endif
 static int32_t MEOSV_DISPLAYSETUP_UPSCALING[] = { 1, 2 };
 static MenuOptionSet_t MEOS_DISPLAYSETUP_UPSCALING = MAKE_MENUOPTIONSET( MEOSN_DISPLAYSETUP_UPSCALING, MEOSV_DISPLAYSETUP_UPSCALING, 0x0 );
 static MenuOption_t MEO_DISPLAYSETUP_UPSCALING = MAKE_MENUOPTION( &MF_Redfont, &MEOS_DISPLAYSETUP_UPSCALING, &ud.detail );
+#ifdef __PSP2__
+static MenuEntry_t ME_DISPLAYSETUP_UPSCALING = MAKE_MENUENTRY( "Resolution:", &MF_Redfont, &MEF_BigOptionsRt, &MEO_DISPLAYSETUP_UPSCALING, Option );
+
+static MenuOption_t MEO_DISPLAYSETUP_SHOWFPS = MAKE_MENUOPTION( &MF_Redfont, &MEOS_OffOn, &ud.showfps );
+static MenuEntry_t ME_DISPLAYSETUP_SHOWFPS = MAKE_MENUENTRY( "Show FPS:", &MF_Redfont, &MEF_BigOptionsRt, &MEO_DISPLAYSETUP_SHOWFPS, Option );
+#else
 static MenuEntry_t ME_DISPLAYSETUP_UPSCALING = MAKE_MENUENTRY( "Upscaling:", &MF_Redfont, &MEF_BigOptionsRt, &MEO_DISPLAYSETUP_UPSCALING, Option );
+#endif
 
 
 #ifndef EDUKE32_ANDROID_MENU
@@ -840,6 +852,9 @@ static MenuEntry_t *MEL_DISPLAYSETUP[] = {
     &ME_DISPLAYSETUP_TOUCHALPHA,
 #endif
     &ME_DISPLAYSETUP_UPSCALING,
+#ifdef __PSP2__
+    &ME_DISPLAYSETUP_SHOWFPS,
+#endif
 #if !defined EDUKE32_RETAIL_MENU && defined USE_OPENGL
     &ME_DISPLAYSETUP_RENDERER,
 #endif
@@ -985,6 +1000,14 @@ static MenuRangeInt32_t MEO_JOYSTICK_RUMBLE = MAKE_MENURANGE(&ud.rumble, &MF_Blu
 static MenuOption_t MEO_JOYSTICK_RUMBLE = MAKE_MENUOPTION( &MF_Redfont, &MEOS_NoYes, &ud.config.controllerRumble );
 static MenuEntry_t ME_JOYSTICK_RUMBLE  = MAKE_MENUENTRY( "Rumble:", &MF_Redfont, &MEF_BigSliders, &MEO_JOYSTICK_RUMBLE, Option );
 
+#ifdef __PSP2__
+static MenuOption_t MEO_JOYSTICK_GYRO = MAKE_MENUOPTION( &MF_Redfont, &MEOS_OffOn, &ud.config.GyroAiming );
+static MenuEntry_t ME_JOYSTICK_GYRO = MAKE_MENUENTRY( "Gyro aiming:", &MF_Redfont, &MEF_BigSliders, &MEO_JOYSTICK_GYRO, Option );
+
+static MenuRangeFloat_t MEO_JOYSTICK_GYROSENSITIVITY = MAKE_MENURANGE( &ud.config.GyroSensitivity, &MF_Redfont, .25f, 4.f, 1.f, 16, DisplayTypePercent|EnforceIntervals );
+static MenuEntry_t ME_JOYSTICK_GYROSENSITIVITY = MAKE_MENUENTRY( "Gyro sens.:", &MF_Redfont, &MEF_BigSliders, &MEO_JOYSTICK_GYROSENSITIVITY, RangeFloat );
+#endif
+
 static MenuOption_t MEO_JOYSTICK_LOOKINVERT = MAKE_MENUOPTION( &MF_Redfont, &MEOS_NoYes, NULL );
 static MenuEntry_t ME_JOYSTICK_LOOKINVERT = MAKE_MENUENTRY( "Inverted aiming:", &MF_Redfont, &MEF_BigSliders, &MEO_JOYSTICK_LOOKINVERT, Option );
 
@@ -997,6 +1020,10 @@ static MenuEntry_t *MEL_JOYSTICKSETUP[] = {
     &ME_JOYSTICK_VERTICALAIMSENSITIVITY,
     &ME_JOYSTICK_RUMBLE,
     &ME_JOYSTICK_LOOKINVERT,
+#ifdef __PSP2__
+    &ME_JOYSTICK_GYRO,
+    &ME_JOYSTICK_GYROSENSITIVITY,
+#endif
     &ME_JOYSTICK_EDITBUTTONS,
     &ME_Space6_Redfont,
     &ME_JOYSTICK_ADV,
@@ -2739,6 +2766,9 @@ static void Menu_Pre(MenuID_t cm)
         MenuEntry_DisableOnCondition(&ME_JOYSTICK_VERTICALAIMSENSITIVITY, !CONTROL_JoyPresent);
         MenuEntry_DisableOnCondition(&ME_JOYSTICK_RUMBLE, !CONTROL_JoyPresent);
         MenuEntry_DisableOnCondition(&ME_JOYSTICK_LOOKINVERT, !CONTROL_JoyPresent);
+#ifdef __PSP2__
+        MenuEntry_DisableOnCondition(&ME_JOYSTICK_GYROSENSITIVITY, !ud.config.GyroAiming);
+#endif
         MenuEntry_DisableOnCondition(&ME_JOYSTICK_EDITBUTTONS, !CONTROL_JoyPresent || (joystick.numButtons == 0 && joystick.numHats == 0));
         MenuEntry_DisableOnCondition(&ME_JOYSTICK_ADV, !CONTROL_JoyPresent);
         MenuEntry_DisableOnCondition(&ME_JOYSTICK_DEFAULTS, !joystick.isGameController);

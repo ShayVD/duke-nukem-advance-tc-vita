@@ -5,7 +5,9 @@
 #include "compat.h"
 #include "vitabits.h"
 
+#include <psp2/appmgr.h>
 #include <psp2/kernel/processmgr.h>
+#include <psp2/motion.h>
 #include <psp2/power.h>
 #include <psp2/touch.h>
 #include <errno.h>
@@ -134,6 +136,75 @@ int vita_readtouchtriggers(void)
     }
 
     return zones;
+}
+
+// SDK build version passed to SceAppMgr; firmware 3.60 accepts anything up to 0x03600011.
+#define VITA_APPMGR_BUILD_VERSION 0x03570011
+
+// SceAppMgrSystemEventType values. Older vitasdk headers, like the one in the CI image, lack ON_DEACTIVATE.
+#define VITA_SYSTEMEVENT_ON_DEACTIVATE 0x10000002
+#define VITA_SYSTEMEVENT_ON_RESUME     0x10000003
+
+int vita_systemuitookover(void)
+{
+    static int wasoverlaid;
+
+    SceAppMgrAppState state;
+    Bmemset(&state, 0, sizeof(state));
+
+    if (_sceAppMgrGetAppState(&state, sizeof(state), VITA_APPMGR_BUILD_VERSION) < 0)
+        return 0;
+
+    int tookover = state.isSystemUiOverlaid && !wasoverlaid;
+    wasoverlaid = state.isSystemUiOverlaid;
+
+    for (unsigned i = 0; i < state.systemEventNum; i++)
+    {
+        SceAppMgrSystemEvent event;
+
+        if (sceAppMgrReceiveSystemEvent(&event) < 0)
+            break;
+
+        // Leaving for the LiveArea deactivates the app, and coming back after the system suspended it resumes it.
+        if (event.systemEvent == VITA_SYSTEMEVENT_ON_DEACTIVATE || event.systemEvent == VITA_SYSTEMEVENT_ON_RESUME)
+            tookover = 1;
+    }
+
+    return tookover;
+}
+
+// Ignore the slow drift left in a resting gyro.
+#define VITA_GYRO_DEADZONE 0.015f
+
+static float vita_gyrodeadzone(float v)
+{
+    if (v > VITA_GYRO_DEADZONE)
+        return v - VITA_GYRO_DEADZONE;
+    if (v < -VITA_GYRO_DEADZONE)
+        return v + VITA_GYRO_DEADZONE;
+    return 0.f;
+}
+
+void vita_readgyro(float *yaw, float *pitch)
+{
+    static int initialized;
+
+    if (!initialized)
+    {
+        sceMotionStartSampling();
+        initialized = 1;
+    }
+
+    SceMotionSensorState sensor;
+
+    if (sceMotionGetSensorState(&sensor, 1) < 0)
+    {
+        *yaw = *pitch = 0.f;
+        return;
+    }
+
+    *yaw   = vita_gyrodeadzone(sensor.gyro.y);
+    *pitch = vita_gyrodeadzone(sensor.gyro.x);
 }
 
 #endif

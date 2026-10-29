@@ -1686,6 +1686,11 @@ int32_t registerosdcommands(void)
             (void *)&ud.config.JoystickAimAssist, CVAR_BOOL, 0, 1
         },
 
+#ifdef __PSP2__
+        { "in_gyro", "aim by tilting and turning the Vita" CVAR_BOOL_OPTSTR, (void *)&ud.config.GyroAiming, CVAR_BOOL, 0, 1 },
+        { "in_gyrosens", "gyro aiming sensitivity multiplier", (void *)&ud.config.GyroSensitivity, CVAR_FLOAT, 0, 4 },
+#endif
+
         { "in_joystick","use joystick or controller input" CVAR_BOOL_OPTSTR,(void *)&ud.setup.usejoystick, CVAR_BOOL|CVAR_FUNCPTR|CVAR_NOSAVE, 0, 1 },
         { "in_mouse","use mouse input" CVAR_BOOL_OPTSTR,(void *)&ud.setup.usemouse, CVAR_BOOL|CVAR_FUNCPTR|CVAR_NOSAVE, 0, 1 },
 
