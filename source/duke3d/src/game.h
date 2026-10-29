@@ -219,6 +219,10 @@ typedef struct {
         int32_t JoystickViewCentering;
         int32_t JoystickAimAssist;
         int32_t controllerRumble;
+#ifdef __PSP2__
+        int32_t GyroAiming;
+        float   GyroSensitivity;
+#endif
 
         // JBF 20031211: Store the input settings because
         // (currently) mact can't regurgitate them
