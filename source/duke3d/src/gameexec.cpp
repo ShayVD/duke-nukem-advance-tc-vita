@@ -151,6 +151,54 @@ static inline void VM_DummySprite(void)
     vm.pData    = &dummy_actor.t_data[0];
 }
 
+#ifdef __PSP2__
+// Name of the first controller button bound to a game function, or nullptr.
+static char const *VM_VitaButtonName(int const gameFunc)
+{
+    for (int i = 0; i < joystick.numButtons; i++)
+        if (ud.config.JoystickFunctions[i][0] == gameFunc)
+            if (char const *name = joyGetName(1, i))
+                return name;
+
+    return nullptr;
+}
+
+// DNA writes some prompts as fixed text, such as "[ENTER] to select" and "CHANGE ANYTIME IN-GAME
+// WITH [BACKSPACE]" on the new game screens. Swap those keys for the Vita buttons that do the same thing.
+static void VM_VitaReplaceKeyNames(char *str)
+{
+    if (!Bstrchr(str, '['))
+        return;
+
+    static struct { char const *key; int gameFunc; } const keys[] =
+    {
+        { "[ENTER]", -1 },                       // menu confirm, which is Cross on a controller
+        { "[BACKSPACE]", gamefunc_TurnAround },  // opens DNA's mod menu
+    };
+
+    for (auto const &k : keys)
+    {
+        char *pos = Bstrstr(str, k.key);
+
+        if (!pos)
+            continue;
+
+        char const *name = k.gameFunc < 0 ? joyGetName(1, CONTROLLER_BUTTON_A) : VM_VitaButtonName(k.gameFunc);
+
+        if (!name)
+            continue;
+
+        char upperName[32];
+        Bstrncpyz(upperName, name, sizeof(upperName));
+        Bstrupr(upperName);
+
+        char buf[MAXQUOTELEN];
+        Bsnprintf(buf, sizeof(buf), "%.*s[%s]%s", (int)(pos - str), str, upperName, pos + Bstrlen(k.key));
+        Bstrcpy(str, buf);
+    }
+}
+#endif
+
 // verification that the event actually exists happens elsewhere
 static FORCE_INLINE int32_t VM_EventInlineInternal__(int const eventNum, int const spriteNum, int const playerNum,
                                                        int const playerDist = -1, int32_t returnValue = 0)
@@ -3193,6 +3241,9 @@ breakfor:
                     int const XstrIndex = *insptr++;
 
                     Bstrcpy(apStrings[strIndex], apXStrings[XstrIndex]);
+#ifdef __PSP2__
+                    VM_VitaReplaceKeyNames(apStrings[strIndex]);
+#endif
                     dispatch();
                 }
 
@@ -4114,10 +4165,8 @@ breakfor:
 #ifdef __PSP2__
                     // Scripts use this for on-screen prompts, and the Vita has no keyboard, so name the
                     // first controller button bound to the function instead.
-                    for (int i = 0; i < joystick.numButtons && !*tempbuf; i++)
-                        if (ud.config.JoystickFunctions[i][0] == gameFunc)
-                            if (char const *name = joyGetName(1, i))
-                                Bstrcpy(tempbuf, name);
+                    if (char const *name = VM_VitaButtonName(gameFunc))
+                        Bstrcpy(tempbuf, name);
 
                     if (!*tempbuf)
 #endif
