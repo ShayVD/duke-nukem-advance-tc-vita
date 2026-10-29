@@ -7,6 +7,7 @@
 
 #include <psp2/appmgr.h>
 #include <psp2/kernel/processmgr.h>
+#include <psp2/kernel/threadmgr.h>
 #include <psp2/motion.h>
 #include <psp2/power.h>
 #include <psp2/touch.h>
@@ -69,6 +70,9 @@ void vita_preinit(int *argc, char ***argv)
     scePowerSetBusClockFrequency(222);
     scePowerSetGpuClockFrequency(222);
     scePowerSetGpuXbarClockFrequency(166);
+
+    // The game runs on core 0, leaving core 1 to present frames (see videoShowFrame()).
+    vita_setthreadcore(0);
 
     mkdir(VITA_DATA_DIR, 0777);
     chdir(VITA_DATA_DIR);
@@ -205,6 +209,34 @@ void vita_readgyro(float *yaw, float *pitch)
 
     *yaw   = vita_gyrodeadzone(sensor.gyro.y);
     *pitch = vita_gyrodeadzone(sensor.gyro.x);
+}
+
+#ifndef SCE_KERNEL_CPU_MASK_USER_0
+# define SCE_KERNEL_CPU_MASK_USER_0 0x00010000
+#endif
+
+void vita_setthreadcore(int core)
+{
+    sceKernelChangeThreadCpuAffinityMask(sceKernelGetThreadId(), SCE_KERNEL_CPU_MASK_USER_0 << core);
+}
+
+void vita_convertframe(uint32_t *dst, int pitch, uint8_t const *src, int w, int h, uint32_t const *palette)
+{
+    for (int y = 0; y < h; y++)
+    {
+        uint32_t *__restrict d = (uint32_t *)((char *)dst + y * pitch);
+        uint8_t const *__restrict s = src + y * w;
+        int x = 0;
+
+        for (; x <= w - 8; x += 8, s += 8, d += 8)
+        {
+            d[0] = palette[s[0]]; d[1] = palette[s[1]]; d[2] = palette[s[2]]; d[3] = palette[s[3]];
+            d[4] = palette[s[4]]; d[5] = palette[s[5]]; d[6] = palette[s[6]]; d[7] = palette[s[7]];
+        }
+
+        for (; x < w; x++)
+            *d++ = palette[*s++];
+    }
 }
 
 #endif

@@ -535,6 +535,34 @@ void G_PrintGameQuotes(int32_t snum)
     }
 }
 
+#ifdef __PSP2__
+// C_InitQuotes names the Open function in "PRESS Open TO RESTART LEVEL" while the scripts compile,
+// before the controller bindings are loaded, so name the Vita button bound to it whenever it is shown.
+static void P_VitaUpdateDeadQuote(void)
+{
+    static char quoteTemplate[MAXQUOTELEN], lastShown[MAXQUOTELEN];
+    char *str = apStrings[QUOTE_DEAD];
+
+    if (Bstrcmp(str, lastShown))  // first time, or a script redefined the quote
+        Bstrncpyz(quoteTemplate, str, sizeof(quoteTemplate));
+
+    char const *funcName = gamefunctions[gamefunc_Open];
+    char const *pos = Bstrstr(quoteTemplate, funcName);
+    char const *buttonName = VM_VitaButtonName(gamefunc_Open);
+
+    if (pos && buttonName)
+    {
+        char upperName[32];
+        Bstrncpyz(upperName, buttonName, sizeof(upperName));
+        Bstrupr(upperName);
+
+        Bsnprintf(str, MAXQUOTELEN, "%.*s%s%s", (int)(pos - quoteTemplate), quoteTemplate, upperName, pos + Bstrlen(funcName));
+    }
+
+    Bstrncpyz(lastShown, str, sizeof(lastShown));
+}
+#endif
+
 void P_DoQuote(int32_t q, DukePlayer_t *p)
 {
     int32_t cq = 0;
@@ -553,6 +581,11 @@ void P_DoQuote(int32_t q, DukePlayer_t *p)
         OSD_Printf(OSD_ERROR "%s %d null quote %d\n", "text:", __LINE__, q);
         return;
     }
+
+#ifdef __PSP2__
+    if (q == QUOTE_DEAD)
+        P_VitaUpdateDeadQuote();
+#endif
 
     if (p->fta > 0 && q != QUOTE_RESERVED && q != QUOTE_RESERVED2)
         if (p->ftq == QUOTE_RESERVED || p->ftq == QUOTE_RESERVED2) return;
