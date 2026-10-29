@@ -197,7 +197,12 @@ int32_t enginecompatibilitymode = ENGINE_EDUKE32;
 
 classicht_t *tileLoadHigh(int dapicnum)
 {
-#ifdef WITHKPLIB
+#if defined __PSP2__ && !defined USE_OPENGL
+    // DNA's hightile PNGs are the same size as its ART tiles, so the classic renderer can't use
+    // them; skip decoding each one from the memory card only to throw it away.
+    UNREFERENCED_PARAMETER(dapicnum);
+    return NULL;
+#elif defined WITHKPLIB
     auto tsiz = tilesiz[dapicnum];
     auto si   = hicfindsubst(dapicnum, 0, 0);
     auto cht  = &classicht[dapicnum];
