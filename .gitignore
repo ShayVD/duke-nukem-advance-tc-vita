@@ -90,3 +90,9 @@ project.xcworkspace/
 /eduke32.elf
 /build/
 /build-vita.log
+
+# Vita: never commit game data or built packages
+*.vpk
+*.[gG][rR][pP]
+/data/
+DNA4PC/

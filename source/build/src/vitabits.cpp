@@ -3,6 +3,7 @@
 #ifdef __PSP2__
 
 #include "compat.h"
+#include "sdl_inc.h"
 #include "vitabits.h"
 
 #include <psp2/appmgr.h>
@@ -64,6 +65,64 @@ static int vita_readargsfile(void)
     return 1;
 }
 
+static int vita_isfile(char const *path, off_t *size = nullptr)
+{
+    struct stat st;
+
+    if (stat(path, &st) != 0 || !S_ISREG(st.st_mode))
+        return 0;
+
+    if (size)
+        *size = st.st_size;
+
+    return 1;
+}
+
+// The shareware DUKE3D.GRP is about 11 MB and the full game's (1.3D, Atomic) 26 MB or more.
+#define VITA_MIN_FULL_GRP_SIZE (20 * 1024 * 1024)
+
+// Checks for DUKE3D.GRP and the DNA4PC folder, on the memory card or bundled in the VPK. If something is
+// missing, explains what and where in a system dialog, saves the same text to VITA_ERROR_FILE, and quits,
+// rather than letting the engine fail later with a less helpful error (or start plain Duke Nukem 3D).
+static void vita_checkdata(void)
+{
+    char const *problem = NULL;
+    off_t grpsize = 0;
+
+    if (!vita_isfile(VITA_DATA_DIR "/DUKE3D.GRP", &grpsize) && !vita_isfile(VITA_BUNDLED_DIR "/DUKE3D.GRP", &grpsize))
+        problem = "DUKE3D.GRP is missing.\n\n"
+                  "Copy it from your copy of Duke Nukem 3D (Atomic Edition or Megaton Edition) to:\n"
+                  VITA_DATA_DIR "/DUKE3D.GRP";
+    else if (grpsize < VITA_MIN_FULL_GRP_SIZE)
+        problem = "DUKE3D.GRP is the shareware version.\n\n"
+                  "Duke Nukem Advance needs the full game's DUKE3D.GRP, from the Atomic Edition or Megaton Edition, in:\n"
+                  VITA_DATA_DIR "/";
+    else if (!vita_isfile(VITA_DATA_DIR "/DNA4PC/EDUKE.CON") && !vita_isfile(VITA_BUNDLED_DIR "/DNA4PC/EDUKE.CON"))
+    {
+        if (vita_isfile(VITA_DATA_DIR "/DNA4PC/DNA4PC/EDUKE.CON"))
+            problem = "The DNA4PC folder is one level too deep.\n\n"
+                      "Move the inner DNA4PC folder so this file exists:\n"
+                      VITA_DATA_DIR "/DNA4PC/EDUKE.CON";
+        else
+            problem = "The Duke Nukem Advance TC (DNA4PC) is missing.\n\n"
+                      "Download it from moddb.com/mods/duke-nukem-advance-tc and copy its DNA4PC folder so this file exists:\n"
+                      VITA_DATA_DIR "/DNA4PC/EDUKE.CON";
+    }
+
+    if (!problem)
+        return;
+
+    if (FILE *fp = fopen(VITA_ERROR_FILE, "w"))
+    {
+        fprintf(fp, "%s\n", problem);
+        fclose(fp);
+    }
+
+    // SDL shows this with the system's message dialog, and it works before SDL_Init().
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Duke Nukem Advance", problem, NULL);
+    sceKernelExitProcess(0);
+}
+
 void vita_preinit(int *argc, char ***argv)
 {
     scePowerSetArmClockFrequency(444);
@@ -85,6 +144,9 @@ void vita_preinit(int *argc, char ***argv)
     // With no arguments from the launcher, boot straight into the mod when it is installed.
     if (*argc <= 1 && !vita_readargsfile())
     {
+        remove(VITA_ERROR_FILE);
+        vita_checkdata();
+
         vita_addarg("-usecwd");
         vita_addarg("-nosetup");
 
