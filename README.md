@@ -223,7 +223,8 @@ adds:
   for vines, and the freezer works differently from the GBA original.
 
 Please report anything else on this repository's Issues page, with
-`ux0:data/dna/eduke32.log` attached.
+`ux0:data/dna/eduke32.log` attached. The checklist used to test each release
+is in [`docs/PLAYTEST.md`](docs/PLAYTEST.md).
 
 ## Troubleshooting
 
