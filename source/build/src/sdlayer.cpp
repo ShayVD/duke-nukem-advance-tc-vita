@@ -45,6 +45,8 @@
 # include <ogc/lwp_watchdog.h>
 #elif defined _WIN32
 # include "winbits.h"
+#elif defined __PSP2__
+# include "vitabits.h"
 #endif
 
 #include "vfs.h"
@@ -83,6 +85,12 @@ char quitevent=0, appactive=1, novideo=0;
 
 // video
 static SDL_Surface *sdl_surface/*=NULL*/;
+#ifdef __PSP2__
+// SDL's renderer-backed window surface fails to update on Vita, so present
+// through the GXM renderer directly. sdl_surface is then a plain RAM surface.
+static SDL_Renderer *vita_renderer;
+static SDL_Texture *vita_texture;
+#endif
 
 static vec2_t sdl_resize;
 static int sdl_minimized;
@@ -323,7 +331,7 @@ void wm_setapptitle(const char *name)
 //
 
 /* XXX: libexecinfo could be used on systems without gnu libc. */
-#if !defined _WIN32 && defined __GNUC__ && !defined __OpenBSD__ && !(defined __APPLE__ && defined __BIG_ENDIAN__) && !defined GEKKO && !defined EDUKE32_TOUCH_DEVICES && !defined __OPENDINGUX__
+#if !defined _WIN32 && defined __GNUC__ && !defined __OpenBSD__ && !(defined __APPLE__ && defined __BIG_ENDIAN__) && !defined GEKKO && !defined __PSP2__ && !defined EDUKE32_TOUCH_DEVICES && !defined __OPENDINGUX__
 # define PRINTSTACKONSEGV 1
 # include <execinfo.h>
 #endif
@@ -475,6 +483,8 @@ int main(int argc, char *argv[])
         while (*wp) wp++;
     }
     argv[argc] = NULL;
+#elif defined __PSP2__
+    vita_preinit(&argc, &argv);
 #endif
 
     engineSetupAllocator();
@@ -965,6 +975,14 @@ void joyScanDevices()
 #endif
                 joystick.isGameController = 1;
 
+#ifdef __PSP2__
+                // The handheld has no L2/R2 or touchpad button; vita_updatetouchtriggers() drives them
+                // from the touch panels.
+                joystick.numAxes = SDL_CONTROLLER_AXIS_MAX;
+                joystick.numButtons = max(joystick.numButtons, SDL_CONTROLLER_BUTTON_TOUCHPAD + 1);
+                joystick.validButtons |= 1 << SDL_CONTROLLER_BUTTON_TOUCHPAD;
+#endif
+
                 if (gameControllerDBLoaded == false)
                     LoadSDLControllerDB();
 
@@ -1176,8 +1194,13 @@ const char *joyGetName(int32_t what, int32_t num)
                     "Left Stick Y-Axis",
                     "Right Stick X-Axis",
                     "Right Stick Y-Axis",
+#ifdef __PSP2__
+                    "L2 (Touch)",
+                    "R2 (Touch)",
+#else
                     "Left Trigger",
                     "Right Trigger",
+#endif
                     NULL
                 };
 
@@ -1197,6 +1220,19 @@ const char *joyGetName(int32_t what, int32_t num)
             {
                 static char const * buttonStrings[] =
                 {
+#ifdef __PSP2__
+                    "Cross",
+                    "Circle",
+                    "Square",
+                    "Triangle",
+                    "Select",
+                    "PS",
+                    "Start",
+                    "L3",
+                    "R3",
+                    "L",
+                    "R",
+#else
                     "A",
                     "B",
                     "X",
@@ -1208,6 +1244,7 @@ const char *joyGetName(int32_t what, int32_t num)
                     "Right Stick",
                     "Left Shoulder",
                     "Right Shoulder",
+#endif
                     "D-Pad Up",
                     "D-Pad Down",
                     "D-Pad Left",
@@ -1217,7 +1254,11 @@ const char *joyGetName(int32_t what, int32_t num)
                     "Paddle 2",
                     "Paddle 3",
                     "Paddle 4",
+#ifdef __PSP2__
+                    "Touchscreen",
+#else
                     "Touchpad",
+#endif
                     NULL
                 };
 
@@ -1534,6 +1575,17 @@ static void destroy_window_resources()
     if (sdl_context)
         SDL_GL_DeleteContext(sdl_context);
     sdl_context = NULL;
+#ifdef __PSP2__
+    if (vita_texture)
+        SDL_DestroyTexture(vita_texture);
+    vita_texture = NULL;
+    if (vita_renderer)
+        SDL_DestroyRenderer(vita_renderer);
+    vita_renderer = NULL;
+    if (sdl_surface)
+        SDL_FreeSurface(sdl_surface);
+    sdl_surface = NULL;
+#endif
     if (sdl_window)
         SDL_DestroyWindow(sdl_window);
     sdl_window = NULL;
@@ -1909,6 +1961,28 @@ int32_t videoSetMode(int32_t x, int32_t y, int32_t c, int32_t fs)
 #endif  // defined USE_OPENGL
     {
         // init
+#ifdef __PSP2__
+        sdl_window = SDL_CreateWindow("", 0, 0, x, y, SDL_WINDOW_FULLSCREEN);
+        if (!sdl_window)
+            SDL2_VIDEO_ERR("SDL_CreateWindow");
+
+        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "vita_gxm");
+        vita_renderer = SDL_CreateRenderer(sdl_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+        if (!vita_renderer)
+            SDL2_VIDEO_ERR("SDL_CreateRenderer");
+
+        SDL_RendererInfo rendererinfo;
+        if (!SDL_GetRendererInfo(vita_renderer, &rendererinfo))
+            VLOG_F(LOG_GFX, "Using SDL renderer '%s'.", rendererinfo.name);
+
+        vita_texture = SDL_CreateTexture(vita_renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, x, y);
+        if (!vita_texture)
+            SDL2_VIDEO_ERR("SDL_CreateTexture");
+
+        sdl_surface = SDL_CreateRGBSurfaceWithFormat(0, x, y, 32, SDL_PIXELFORMAT_ABGR8888);
+        if (!sdl_surface)
+            SDL2_VIDEO_ERR("SDL_CreateRGBSurfaceWithFormat");
+#else
         sdl_window = SDL_CreateWindow("", g_windowPosValid ? g_windowPos.x : (int)SDL_WINDOWPOS_CENTERED_DISPLAY(display),
                                           g_windowPosValid ? g_windowPos.y : (int)SDL_WINDOWPOS_CENTERED_DISPLAY(display), x, y,
                                       SDL_WINDOW_RESIZABLE | borderless);
@@ -1918,6 +1992,7 @@ int32_t videoSetMode(int32_t x, int32_t y, int32_t c, int32_t fs)
         sdl_surface = SDL_GetWindowSurface(sdl_window);
         if (!sdl_surface)
             SDL2_VIDEO_ERR("SDL_GetWindowSurface");
+#endif
     }
 
     setvideomode_sdlcommonpost(x, y, c, fs, regrab);
@@ -2184,7 +2259,21 @@ void videoShowFrame(int32_t w)
     if (SDL_MUSTLOCK(sdl_surface)) SDL_LockSurface(sdl_surface);
     softsurface_blitBuffer((uint32_t*) sdl_surface->pixels, sdl_surface->format->BitsPerPixel);
     if (SDL_MUSTLOCK(sdl_surface)) SDL_UnlockSurface(sdl_surface);
-#if SDL_MAJOR_VERSION >= 2
+#if defined __PSP2__
+    vec2_t const res = softsurface_getBufferResolution();
+    int texw, texh;
+
+    if (SDL_QueryTexture(vita_texture, NULL, NULL, &texw, &texh) || texw != res.x || texh != res.y)
+    {
+        // the render resolution changed (r_upscalefactor)
+        SDL_DestroyTexture(vita_texture);
+        vita_texture = SDL_CreateTexture(vita_renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, res.x, res.y);
+    }
+
+    SDL_UpdateTexture(vita_texture, NULL, sdl_surface->pixels, res.x * sizeof(uint32_t));
+    SDL_RenderCopy(vita_renderer, vita_texture, NULL, NULL);
+    SDL_RenderPresent(vita_renderer);
+#elif SDL_MAJOR_VERSION >= 2
     if (SDL_UpdateWindowSurface(sdl_window))
     {
         // If a fullscreen X11 window is minimized then this may be required.
@@ -2791,6 +2880,31 @@ int32_t handleevents_pollsdl(void)
 }
 #endif
 
+#ifdef __PSP2__
+static void vita_updatetouchtriggers(void)
+{
+    if (!joystick.isGameController || !joystick.pAxis || joystick.numAxes <= SDL_CONTROLLER_AXIS_TRIGGERRIGHT)
+        return;
+
+    static int lastzones;
+    int const zones = appactive ? vita_readtouchtriggers() : 0;
+
+    // Only write on change so a PS TV controller's real triggers still work.
+    if (zones == lastzones)
+        return;
+
+    joystick.pAxis[SDL_CONTROLLER_AXIS_TRIGGERLEFT]  = (zones & VITA_TOUCH_L2) ? INT16_MAX : 0;
+    joystick.pAxis[SDL_CONTROLLER_AXIS_TRIGGERRIGHT] = (zones & VITA_TOUCH_R2) ? INT16_MAX : 0;
+
+    if (zones & VITA_TOUCH_FRONT)
+        joystick.bits |= 1 << SDL_CONTROLLER_BUTTON_TOUCHPAD;
+    else
+        joystick.bits &= ~(1 << SDL_CONTROLLER_BUTTON_TOUCHPAD);
+
+    lastzones = zones;
+}
+#endif
+
 int32_t handleevents(void)
 {
 #ifdef __ANDROID__
@@ -2860,6 +2974,10 @@ int32_t handleevents(void)
     }
 
     rv = handleevents_pollsdl();
+
+#ifdef __PSP2__
+    vita_updatetouchtriggers();
+#endif
 
     inputchecked = 0;
     timerUpdateClock();

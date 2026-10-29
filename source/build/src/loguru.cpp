@@ -2128,6 +2128,9 @@ namespace loguru
 
 	void call_default_signal_handler(int signal_number)
 	{
+#ifdef __PSP2__
+		(void)signal_number;
+#else
 		struct sigaction sig_action;
 		memset(&sig_action, 0, sizeof(sig_action));
 		sigemptyset(&sig_action.sa_mask);
@@ -2137,17 +2140,21 @@ namespace loguru
 		//       It's only used when setting up the signal handlers.
 		(void) sigaction(signal_number, &sig_action, NULL);
 		kill(getpid(), signal_number);
+#endif
 	}
 
+#ifndef __PSP2__
 	void signal_handler(int signal_number, siginfo_t*, void*)
 	{
 		signal_handler(signal_number);
 	}
+#endif
 
 	void install_signal_handlers(const SignalOptions& signal_options)
 	{
 		s_signal_options = signal_options;
 
+#ifndef __PSP2__ // no sigaction with siginfo on Vita
 		struct sigaction sig_action;
 		memset(&sig_action, 0, sizeof(sig_action));
 		sigemptyset(&sig_action.sa_mask);
@@ -2175,6 +2182,7 @@ namespace loguru
 		if (signal_options.sigterm) {
 			CHECK_F(sigaction(SIGTERM, &sig_action, NULL) != -1, "Failed to install handler for SIGTERM");
 		}
+#endif
 	}
 } // namespace loguru
 #endif // _WIN32

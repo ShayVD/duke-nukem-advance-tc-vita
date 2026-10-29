@@ -373,6 +373,9 @@ static void G_DoLoadScreen(const char *statustext, int percent)
     }
     else
     {
+        // With no loading tile (DNA turns it off), clear to black. Otherwise the last screen
+        // drawn, DNA's mission briefing, comes back at full brightness for the whole precache.
+        videoClearScreen(0);
         videoNextPage();
         return;
     }
@@ -457,7 +460,11 @@ void G_CacheMapData(void)
     if (ud.recstat == 2 || !ud.config.useprecache)
         return;
 
+#ifndef __PSP2__
+    // Loading every sound from the memory card takes about 25 seconds with no screen updates,
+    // so the Vita loads them on first use instead.
     cacheAllSounds();
+#endif
 
     g_precacheCount = 0;
     Bmemset(gotpic, 0, sizeof(gotpic));

@@ -156,6 +156,10 @@ imgui_obj := $(obj)/$(imgui)
 
 imgui_excl :=
 
+ifeq (0,$(USE_OPENGL))
+    imgui_excl += imgui_impl_opengl3.cpp
+endif
+
 ifneq ($(RENDERTYPE),SDL)
     imgui_excl += imgui_impl_sdl2.cpp
 endif
@@ -295,6 +299,10 @@ ifeq ($(PLATFORM),WII)
     LINKERFLAGS += -Wl,-wrap,c_default_exceptionhandler
 else
     engine_excl += wiibits.cpp
+endif
+
+ifneq ($(PLATFORM),PSP2)
+    engine_excl += vitabits.cpp
 endif
 
 ifneq ($(RENDERTYPE),SDL)

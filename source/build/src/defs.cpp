@@ -2482,8 +2482,12 @@ static int32_t defsparser(scriptfile *script)
                         break;
                     }
 
+#ifdef USE_OPENGL
+                    // Hightile replacements are only drawn by the GL renderers, so don't
+                    // spend startup time checking that each file exists without one.
                     if (EDUKE32_PREDICT_FALSE(check_file_exist(fn)))
                         break;
+#endif
 
                     if (xsiz > 0 && ysiz > 0)
                     {

@@ -141,7 +141,9 @@
     #define ENET_SOCKETSET_CHECK(sockset, socket)  FD_ISSET(socket, &(sockset))
 #else
     #include <sys/types.h>
+    #ifndef __PSP2__
     #include <sys/ioctl.h>
+    #endif
     #include <sys/time.h>
     #include <sys/socket.h>
     #include <poll.h>
@@ -162,6 +164,15 @@
 
     #ifndef MSG_NOSIGNAL
     #define MSG_NOSIGNAL 0
+    #endif
+
+    #ifdef __PSP2__
+    // Vita's network stack is IPv4 only; these let the IPv6 paths compile.
+    #ifndef SOMAXCONN
+    #define SOMAXCONN 128
+    #endif
+    static const struct in6_addr enet_vita_in6addr_any = {};
+    #define in6addr_any enet_vita_in6addr_any
     #endif
 
     #ifdef MSG_MAXIOVLEN

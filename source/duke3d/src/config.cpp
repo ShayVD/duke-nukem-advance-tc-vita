@@ -288,7 +288,11 @@ void CONFIG_SetDefaults(void)
     ud.crosshairscale         = 50;
     ud.default_skill          = 1;
     ud.democams               = 1;
+#ifdef __PSP2__
+    ud.detail                 = 2; // render at 480x272 and let the GPU upscale
+#else
     ud.detail                 = 0;
+#endif
     ud.display_bonus_screen   = 1;
     ud.drawweapon             = 1;
     ud.fov                    = 90;
@@ -640,11 +644,31 @@ void CONFIG_SetGameControllerDefaults()
         { CONTROLLER_BUTTON_DPAD_RIGHT, gamefunc_NightVision }, // Radar
     };
 
+#ifdef __PSP2__
+    // Vita: L/R are the main shoulder buttons, and the rear touchpad halves or the front
+    // screen's top corners act as L2/R2 (see vita_readtouchtriggers()). There are no
+    // stick clicks, so Circle toggles crouch (auto run is already on by default).
+    static GameControllerButtonSetting const buttonsVita[] =
+    {
+        { CONTROLLER_BUTTON_LEFTSHOULDER, gamefunc_Jump },
+        { CONTROLLER_BUTTON_RIGHTSHOULDER, gamefunc_Fire },
+        { CONTROLLER_BUTTON_B, gamefunc_Toggle_Crouch },
+        { CONTROLLER_BUTTON_BACK, gamefunc_TurnAround }, // DNA's mod menu
+        { (GameControllerButton)(CONTROLLER_BUTTON_PADDLE4 + 1), gamefunc_Map }, // SDL's touchpad: a front screen tap
+    };
+
+    static GameControllerDigitalAxisSetting const digitalAxes[] =
+    {
+        { CONTROLLER_AXIS_TRIGGERLEFT, 1, gamefunc_Crouch },
+        { CONTROLLER_AXIS_TRIGGERRIGHT, 1, gamefunc_Alt_Fire },
+    };
+#else
     static GameControllerDigitalAxisSetting const digitalAxes[] =
     {
         { CONTROLLER_AXIS_TRIGGERLEFT, 1, gamefunc_Jump },
         { CONTROLLER_AXIS_TRIGGERRIGHT, 1, gamefunc_Fire },
     };
+#endif
 
     for (auto const & button : buttons)
         button.apply();
@@ -659,6 +683,11 @@ void CONFIG_SetGameControllerDefaults()
         for (auto const & button : buttonsDuke)
             button.apply();
     }
+
+#ifdef __PSP2__
+    for (auto const & button : buttonsVita)
+        button.apply();
+#endif
 
     for (auto const & digitalAxis : digitalAxes)
         digitalAxis.apply();
