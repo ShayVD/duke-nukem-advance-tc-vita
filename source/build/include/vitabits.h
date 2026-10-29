@@ -15,6 +15,9 @@
 // Optional file in VITA_DATA_DIR with extra command-line arguments.
 #define VITA_ARGS_FILE VITA_DATA_DIR "/args.txt"
 
+// Written when the game data is missing, with the same explanation the game shows on screen.
+#define VITA_ERROR_FILE VITA_DATA_DIR "/error.txt"
+
 void vita_preinit(int *argc, char ***argv);
 
 enum

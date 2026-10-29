@@ -7,7 +7,7 @@ export PATH="$VITASDK/bin:$PATH"
 
 TITLE_ID=DNAV00001
 TITLE="Duke Nukem Advance"
-VERSION=00.01
+VERSION=01.00
 
 cd "$(dirname "$0")/../.."
 
@@ -30,6 +30,9 @@ vita-pack-vpk -s "$out/param.sfo" -b "$out/eboot.bin" \
     -a platform/PSVita/sce_sys/livearea/contents/bg.png=sce_sys/livearea/contents/bg.png \
     -a platform/PSVita/sce_sys/livearea/contents/startup.png=sce_sys/livearea/contents/startup.png \
     -a platform/PSVita/sce_sys/livearea/contents/template.xml=sce_sys/livearea/contents/template.xml \
+    -a package/common/gpl-2.0.txt=LICENSE/gpl-2.0.txt \
+    -a package/common/buildlic.txt=LICENSE/BUILDLIC.TXT \
+    -a NOTICE.md=LICENSE/NOTICE.md \
     "$out/dna-vita.vpk"
 
 echo "Built $out/dna-vita.vpk"
