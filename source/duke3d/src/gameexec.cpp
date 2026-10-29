@@ -153,7 +153,7 @@ static inline void VM_DummySprite(void)
 
 #ifdef __PSP2__
 // Name of the first controller button bound to a game function, or nullptr.
-static char const *VM_VitaButtonName(int const gameFunc)
+char const *VM_VitaButtonName(int const gameFunc)
 {
     for (int i = 0; i < joystick.numButtons; i++)
         if (ud.config.JoystickFunctions[i][0] == gameFunc)

@@ -125,6 +125,10 @@ int G_StartTrack(int levelNum);
 void VM_UpdateAnim(int const spriteNum, int32_t * const pData);
 void VM_GetZRange(int const spriteNum, int32_t * const ceilhit, int32_t * const florhit, int const wallDist);
 
+#ifdef __PSP2__
+char const *VM_VitaButtonName(int const gameFunc);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
