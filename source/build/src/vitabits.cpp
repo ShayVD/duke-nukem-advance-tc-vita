@@ -141,6 +141,10 @@ int vita_readtouchtriggers(void)
 // SDK build version passed to SceAppMgr; firmware 3.60 accepts anything up to 0x03600011.
 #define VITA_APPMGR_BUILD_VERSION 0x03570011
 
+// SceAppMgrSystemEventType values. Older vitasdk headers, like the one in the CI image, lack ON_DEACTIVATE.
+#define VITA_SYSTEMEVENT_ON_DEACTIVATE 0x10000002
+#define VITA_SYSTEMEVENT_ON_RESUME     0x10000003
+
 int vita_systemuitookover(void)
 {
     static int wasoverlaid;
@@ -162,7 +166,7 @@ int vita_systemuitookover(void)
             break;
 
         // Leaving for the LiveArea deactivates the app, and coming back after the system suspended it resumes it.
-        if (event.systemEvent == SCE_APPMGR_SYSTEMEVENT_ON_DEACTIVATE || event.systemEvent == SCE_APPMGR_SYSTEMEVENT_ON_RESUME)
+        if (event.systemEvent == VITA_SYSTEMEVENT_ON_DEACTIVATE || event.systemEvent == VITA_SYSTEMEVENT_ON_RESUME)
             tookover = 1;
     }
 
