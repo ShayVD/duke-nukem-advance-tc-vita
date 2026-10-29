@@ -38,7 +38,7 @@ The rest of this page explains each step.
 | A PS Vita or PS TV with homebrew enabled (HENkaku, h-encore or Ensō) | Any homebrew guide for your firmware |
 | [VitaShell](https://github.com/TheOfficialFloW/VitaShell) | Its GitHub releases |
 | `dna-vita.vpk` | See [Getting the VPK](#getting-the-vpk) |
-| `DUKE3D.GRP`, Duke Nukem 3D 1.4/1.5 (Atomic Edition), about 43 MB | The GOG release of Atomic Edition, or the Steam/GOG Megaton Edition (in its `gameroot` folder) |
+| `DUKE3D.GRP`, Duke Nukem 3D 1.4/1.5 (Atomic Edition), about 43 MB | The GOG release of Atomic Edition, or the Steam/GOG Megaton Edition (in its `gameroot` folder). The original CD is also on the [Internet Archive](https://archive.org/details/DukeNukem3DUSAAtomicEdition). |
 | DNA4PC 1.0 (only its `DNA4PC` folder, about 33 MB) | [ModDB](https://www.moddb.com/mods/duke-nukem-advance-tc) or [GitHub](https://github.com/branung/DNA4PC) |
 
 The shareware `DUKE3D.GRP` will not work. The 20th Anniversary World Tour data
