@@ -43,3 +43,25 @@ jobs:
           path: |
             build/vita/dna-vita.vpk
             eduke32.elf
+
+  # Pushing a tag like v1.0 publishes a GitHub release with the VPK attached.
+  # GitHub adds the source code archives to every release, which keeps the GPL source next to the VPK.
+  release:
+    needs: vpk
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dna-vita
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: Duke Nukem Advance for PS Vita ${{ github.ref_name }}
+          body_path: .github/release-notes.md
+          files: build/vita/dna-vita.vpk
+          fail_on_unmatched_files: true
