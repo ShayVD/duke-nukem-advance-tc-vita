@@ -479,7 +479,11 @@ void makeasmwriteable(void)
 #endif
 }
 
+#ifdef __PSP2__
+int32_t vsync=1;
+#else
 int32_t vsync=0;
+#endif
 int32_t r_finishbeforeswap=0;
 int32_t r_glfinish=0;
 
@@ -785,6 +789,10 @@ static int osdcmd_cvar_set_baselayer(osdcmdptr_t parm)
         if (r_maxfps > 0) r_maxfps = clamp(r_maxfps, 30, 1000);
         g_frameDelay = calcFrameDelay(r_maxfps);
     }
+#ifndef USE_OPENGL
+    else if (!Bstrcasecmp(parm->name, "r_vsync"))
+        vsync = videoSetVsync(vsync);
+#endif
     return r;
 }
 
@@ -811,6 +819,10 @@ int32_t baselayer_init(void)
         { "r_rotatespriteinterp", "interpolate repeated rotatesprite calls", (void *)&r_rotatespriteinterp, CVAR_BOOL, 0, 1 },
         { "r_voxels","enable/disable automatic sprite->voxel rendering",(void *) &usevoxels, CVAR_BOOL, 0, 1 },
         { "r_maxfps", "limit the frame rate", (void *)&r_maxfps, CVAR_INT | CVAR_FUNCPTR, -2, 1000 },
+#ifndef USE_OPENGL
+        // polymost.cpp registers this when OpenGL is built in
+        { "r_vsync", "VSync mode: 0: disabled  1: enabled", (void *)&vsync, CVAR_INT | CVAR_FUNCPTR, -1, 1 },
+#endif
 #ifdef YAX_ENABLE
         { "r_tror_nomaskpass", "enable/disable additional pass in TROR software rendering", (void *)&r_tror_nomaskpass, CVAR_BOOL, 0, 1 },
 #endif

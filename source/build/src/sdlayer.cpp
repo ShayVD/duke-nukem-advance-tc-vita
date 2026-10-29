@@ -620,6 +620,19 @@ int32_t videoSetVsync(int32_t newSync)
     if (vsync_renderlayer == newSync)
         return newSync;
 
+#ifdef __PSP2__
+    if (vita_renderer)
+    {
+        // Switch in place: rebuilding the window and renderer takes seconds on the Vita.
+        if (SDL_RenderSetVSync(vita_renderer, newSync != 0))
+            LOG_F(WARNING, "Unable to configure VSync: %s", SDL_GetError());
+        else
+            vsync_renderlayer = newSync;
+
+        return vsync_renderlayer;
+    }
+#endif
+
 #ifdef USE_OPENGL
     if (sdl_context)
     {
@@ -1966,14 +1979,18 @@ int32_t videoSetMode(int32_t x, int32_t y, int32_t c, int32_t fs)
         if (!sdl_window)
             SDL2_VIDEO_ERR("SDL_CreateWindow");
 
-        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "vita_gxm");
-        vita_renderer = SDL_CreateRenderer(sdl_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+        // Ask for SDL's native GXM renderer by its real name; anything else falls back to the
+        // vitaGL-backed GLES renderer, which costs an extra texture copy every frame.
+        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "VITA gxm");
+        vita_renderer = SDL_CreateRenderer(sdl_window, -1, SDL_RENDERER_ACCELERATED | (vsync ? SDL_RENDERER_PRESENTVSYNC : 0));
         if (!vita_renderer)
             SDL2_VIDEO_ERR("SDL_CreateRenderer");
 
         SDL_RendererInfo rendererinfo;
         if (!SDL_GetRendererInfo(vita_renderer, &rendererinfo))
             VLOG_F(LOG_GFX, "Using SDL renderer '%s'.", rendererinfo.name);
+
+        vsync_renderlayer = vsync;
 
         vita_texture = SDL_CreateTexture(vita_renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, x, y);
         if (!vita_texture)
@@ -2256,9 +2273,6 @@ void videoShowFrame(int32_t w)
         while (lockcount) videoEndDrawing();
     }
 
-    if (SDL_MUSTLOCK(sdl_surface)) SDL_LockSurface(sdl_surface);
-    softsurface_blitBuffer((uint32_t*) sdl_surface->pixels, sdl_surface->format->BitsPerPixel);
-    if (SDL_MUSTLOCK(sdl_surface)) SDL_UnlockSurface(sdl_surface);
 #if defined __PSP2__
     vec2_t const res = softsurface_getBufferResolution();
     int texw, texh;
@@ -2270,10 +2284,33 @@ void videoShowFrame(int32_t w)
         vita_texture = SDL_CreateTexture(vita_renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, res.x, res.y);
     }
 
-    SDL_UpdateTexture(vita_texture, NULL, sdl_surface->pixels, res.x * sizeof(uint32_t));
+    void *pixels;
+    int pitch;
+
+    // The GXM renderer's streaming textures lock straight to their GPU memory, so palette
+    // conversion can write there and skip a full-frame copy through sdl_surface.
+    if (!SDL_LockTexture(vita_texture, NULL, &pixels, &pitch))
+    {
+        if (pitch == res.x * (int)sizeof(uint32_t))
+            softsurface_blitBuffer((uint32_t *)pixels, 32);
+        else
+        {
+            softsurface_blitBuffer((uint32_t *)sdl_surface->pixels, 32);
+
+            for (int i = 0; i < res.y; i++)
+                Bmemcpy((char *)pixels + i * pitch, (uint32_t *)sdl_surface->pixels + i * res.x, res.x * sizeof(uint32_t));
+        }
+
+        SDL_UnlockTexture(vita_texture);
+    }
+
     SDL_RenderCopy(vita_renderer, vita_texture, NULL, NULL);
     SDL_RenderPresent(vita_renderer);
-#elif SDL_MAJOR_VERSION >= 2
+#else
+    if (SDL_MUSTLOCK(sdl_surface)) SDL_LockSurface(sdl_surface);
+    softsurface_blitBuffer((uint32_t*) sdl_surface->pixels, sdl_surface->format->BitsPerPixel);
+    if (SDL_MUSTLOCK(sdl_surface)) SDL_UnlockSurface(sdl_surface);
+# if SDL_MAJOR_VERSION >= 2
     if (SDL_UpdateWindowSurface(sdl_window))
     {
         // If a fullscreen X11 window is minimized then this may be required.
@@ -2281,8 +2318,9 @@ void videoShowFrame(int32_t w)
         sdl_surface = SDL_GetWindowSurface(sdl_window);
         SDL_UpdateWindowSurface(sdl_window);
     }
-#else
+# else
     SDL_Flip(sdl_surface);
+# endif
 #endif
     MicroProfileFlip();
 }

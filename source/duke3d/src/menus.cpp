@@ -627,11 +627,23 @@ static MenuLink_t MEO_DISPLAYSETUP_COLORCORR = { MENU_COLCORR, MA_Advance, };
 static MenuEntry_t ME_DISPLAYSETUP_COLORCORR = MAKE_MENUENTRY( "Color Correction", &MF_Redfont, &MEF_BigOptionsRt, &MEO_DISPLAYSETUP_COLORCORR, Link );
 
 
+#ifdef __PSP2__
+// Full renders at the screen's 960x544; Half renders at 480x272 and the GPU scales it up.
+static char const *MEOSN_DISPLAYSETUP_UPSCALING[] = { "Full", "Half" };
+#else
 static char const *MEOSN_DISPLAYSETUP_UPSCALING[] = { "None", "2x" };
+#endif
 static int32_t MEOSV_DISPLAYSETUP_UPSCALING[] = { 1, 2 };
 static MenuOptionSet_t MEOS_DISPLAYSETUP_UPSCALING = MAKE_MENUOPTIONSET( MEOSN_DISPLAYSETUP_UPSCALING, MEOSV_DISPLAYSETUP_UPSCALING, 0x0 );
 static MenuOption_t MEO_DISPLAYSETUP_UPSCALING = MAKE_MENUOPTION( &MF_Redfont, &MEOS_DISPLAYSETUP_UPSCALING, &ud.detail );
+#ifdef __PSP2__
+static MenuEntry_t ME_DISPLAYSETUP_UPSCALING = MAKE_MENUENTRY( "Resolution:", &MF_Redfont, &MEF_BigOptionsRt, &MEO_DISPLAYSETUP_UPSCALING, Option );
+
+static MenuOption_t MEO_DISPLAYSETUP_SHOWFPS = MAKE_MENUOPTION( &MF_Redfont, &MEOS_OffOn, &ud.showfps );
+static MenuEntry_t ME_DISPLAYSETUP_SHOWFPS = MAKE_MENUENTRY( "Show FPS:", &MF_Redfont, &MEF_BigOptionsRt, &MEO_DISPLAYSETUP_SHOWFPS, Option );
+#else
 static MenuEntry_t ME_DISPLAYSETUP_UPSCALING = MAKE_MENUENTRY( "Upscaling:", &MF_Redfont, &MEF_BigOptionsRt, &MEO_DISPLAYSETUP_UPSCALING, Option );
+#endif
 
 
 #ifndef EDUKE32_ANDROID_MENU
@@ -840,6 +852,9 @@ static MenuEntry_t *MEL_DISPLAYSETUP[] = {
     &ME_DISPLAYSETUP_TOUCHALPHA,
 #endif
     &ME_DISPLAYSETUP_UPSCALING,
+#ifdef __PSP2__
+    &ME_DISPLAYSETUP_SHOWFPS,
+#endif
 #if !defined EDUKE32_RETAIL_MENU && defined USE_OPENGL
     &ME_DISPLAYSETUP_RENDERER,
 #endif
