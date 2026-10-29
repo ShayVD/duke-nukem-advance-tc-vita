@@ -75,10 +75,10 @@ need to be signed in to GitHub). It's a zip that holds `dna-vita.vpk` and
 
    - Copy the `DNA4PC` folder itself, not the folder that contains it. You
      should see `ux0:data/dna/DNA4PC/EDUKE.CON`.
-   - If you downloaded the full DNA4PC package, leave out its `eduke32.exe`,
-     `mapster32.exe` and `eduke32.cfg`. They are for Windows, and the PC
-     `eduke32.cfg` sets a 1920x1080 screen and keyboard controls that the Vita
-     can't use.
+   - If it's easier, copy everything from the DNA4PC download (the `DNA4PC`
+     folder and the files next to it) into `ux0:data/dna/` as it is. The
+     Windows files that come with it, such as `eduke32.exe` and the PC
+     `eduke32.cfg`, are ignored on the Vita.
    - To copy files, use VitaShell's FTP server (press Select in VitaShell) or
      its USB mode. File names are not case sensitive on the memory card.
 4. **Launch the bubble.** The game skips the EDuke32 launcher and boots
@@ -122,8 +122,8 @@ These options are specific to the Vita build.
 | **Gyro aiming:** Off / On | Options > Control Setup > Controller Setup | Turning the Vita left or right turns the view, and tilting it looks up or down. Works together with the right stick. |
 | **Gyro sens.:** 25% to 400% | Options > Control Setup > Controller Setup | How far the view turns for a given motion. At 100% the view turns twice as far as the Vita does. |
 
-Settings are saved in `ux0:data/dna/`. The gyro settings can also be set from
-the console as `in_gyro` and `in_gyrosens`.
+Settings are saved in `ux0:data/dna/eduke32-vita.cfg` and `settings.cfg`. The
+gyro settings can also be set from the console as `in_gyro` and `in_gyrosens`.
 
 ## What this port adds for the Vita
 
@@ -154,7 +154,8 @@ adds:
 - **Duke Nukem Advance LiveArea art**: icon, start gate and background, built
   from the mod's own graphics.
 - Boots straight into the mod, with no launcher, and keeps all its files in
-  `ux0:data/dna/`.
+  `ux0:data/dna/`. The DNA4PC download can be copied as it is: the Vita uses
+  its own `eduke32-vita.cfg`, so the Windows `eduke32.cfg` is ignored.
 
 **Speed and display**
 
@@ -180,9 +181,9 @@ adds:
   `ux0:data/dna/DNA4PC/`, with `EDUKE.CON` directly inside it.
 - **The game can't find its data and quits.** Check that `DUKE3D.GRP` is
   directly in `ux0:data/dna/` and is the full 43 MB version, not shareware.
-- **Controls or the screen are wrong after copying files from a PC.** Delete
-  `ux0:data/dna/eduke32.cfg` and `settings.cfg`. The game recreates them with
-  the Vita defaults.
+- **You want to reset all settings and controls.** Delete
+  `ux0:data/dna/eduke32-vita.cfg` and `settings.cfg`. The game recreates them
+  with the Vita defaults.
 - **Anything else.** The game writes a log to `ux0:data/dna/eduke32.log` on
   every run. Check the end of it, or attach it to a bug report.
 

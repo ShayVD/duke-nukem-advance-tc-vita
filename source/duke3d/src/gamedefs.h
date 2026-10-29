@@ -35,7 +35,13 @@ extern "C" {
 #endif
 
 // config file name
-#define SETUPFILENAME APPBASENAME ".cfg"
+#ifdef __PSP2__
+// Not eduke32.cfg, so the Windows one shipped with DNA4PC can be copied along with the mod
+// without bringing its 1920x1080 mode and keyboard setup to the Vita.
+# define SETUPFILENAME APPBASENAME "-vita.cfg"
+#else
+# define SETUPFILENAME APPBASENAME ".cfg"
+#endif
 
 // KEEPINSYNC mact/include/_control.h, build/src/sdlayer.cpp
 #define MAXJOYBUTTONS 32
