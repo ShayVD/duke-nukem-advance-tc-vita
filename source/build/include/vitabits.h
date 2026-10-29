@@ -8,6 +8,10 @@
 // Folder on the memory card holding DUKE3D.GRP and the DNA4PC mod folder.
 #define VITA_DATA_DIR "ux0:data/dna"
 
+// Read-only copy of the same files inside the VPK, present only in builds made with the game data bundled.
+// Settings and saves still go to VITA_DATA_DIR.
+#define VITA_BUNDLED_DIR "app0:data"
+
 // Optional file in VITA_DATA_DIR with extra command-line arguments.
 #define VITA_ARGS_FILE VITA_DATA_DIR "/args.txt"
 
