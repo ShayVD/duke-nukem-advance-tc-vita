@@ -186,7 +186,8 @@ adds:
 - **Pauses when you press the PS button.** Going to the LiveArea or opening the
   quick menu mid-level brings up the pause menu, so you don't come back to a
   game that kept running, or one that tries to catch up after a suspend.
-- **Duke Nukem Advance LiveArea art**: icon, start gate and background.
+- **Duke Nukem Advance LiveArea art**: icon, start gate and background, made
+  from DNA4PC's title and sky graphics.
 - Boots straight into the mod, with no launcher, and keeps all its files in
   `ux0:data/dna/`. The DNA4PC download can be copied as it is: the Vita uses
   its own `eduke32-vita.cfg`, so the Windows `eduke32.cfg` is ignored.
