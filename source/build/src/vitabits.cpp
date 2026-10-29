@@ -5,6 +5,7 @@
 #include "compat.h"
 #include "vitabits.h"
 
+#include <psp2/appmgr.h>
 #include <psp2/kernel/processmgr.h>
 #include <psp2/motion.h>
 #include <psp2/power.h>
@@ -135,6 +136,37 @@ int vita_readtouchtriggers(void)
     }
 
     return zones;
+}
+
+// SDK build version passed to SceAppMgr; firmware 3.60 accepts anything up to 0x03600011.
+#define VITA_APPMGR_BUILD_VERSION 0x03570011
+
+int vita_systemuitookover(void)
+{
+    static int wasoverlaid;
+
+    SceAppMgrAppState state;
+    Bmemset(&state, 0, sizeof(state));
+
+    if (_sceAppMgrGetAppState(&state, sizeof(state), VITA_APPMGR_BUILD_VERSION) < 0)
+        return 0;
+
+    int tookover = state.isSystemUiOverlaid && !wasoverlaid;
+    wasoverlaid = state.isSystemUiOverlaid;
+
+    for (unsigned i = 0; i < state.systemEventNum; i++)
+    {
+        SceAppMgrSystemEvent event;
+
+        if (sceAppMgrReceiveSystemEvent(&event) < 0)
+            break;
+
+        // Leaving for the LiveArea deactivates the app, and coming back after the system suspended it resumes it.
+        if (event.systemEvent == SCE_APPMGR_SYSTEMEVENT_ON_DEACTIVATE || event.systemEvent == SCE_APPMGR_SYSTEMEVENT_ON_RESUME)
+            tookover = 1;
+    }
+
+    return tookover;
 }
 
 // Ignore the slow drift left in a resting gyro.
