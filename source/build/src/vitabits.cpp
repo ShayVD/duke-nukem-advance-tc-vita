@@ -124,13 +124,12 @@ int vita_readtouchtriggers(void)
     {
         for (unsigned i = 0; i < touch.reportNum; i++)
         {
-            if (touch.report[i].y >= VITA_FRONT_CORNER_H)
-                continue;
-
-            if (touch.report[i].x < VITA_FRONT_CORNER_W)
+            if (touch.report[i].y < VITA_FRONT_CORNER_H && touch.report[i].x < VITA_FRONT_CORNER_W)
                 zones |= VITA_TOUCH_L2;
-            else if (touch.report[i].x >= VITA_TOUCH_WIDTH - VITA_FRONT_CORNER_W)
+            else if (touch.report[i].y < VITA_FRONT_CORNER_H && touch.report[i].x >= VITA_TOUCH_WIDTH - VITA_FRONT_CORNER_W)
                 zones |= VITA_TOUCH_R2;
+            else
+                zones |= VITA_TOUCH_FRONT;
         }
     }
 

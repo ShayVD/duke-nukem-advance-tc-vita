@@ -4110,14 +4110,27 @@ breakfor:
                     VM_ABORT_IF(bad_quote(quoteIndex), "invalid quote %d", quoteIndex);
                     VM_ABORT_IF((unsigned)gameFunc >= NUMGAMEFUNCTIONS, "invalid function %d", gameFunc);
 
-                    if (funcPos < 2)
-                        Bstrcpy(tempbuf, KB_ScanCodeToString(ud.config.KeyboardKeys[gameFunc][funcPos]));
-                    else
-                    {
-                        Bstrcpy(tempbuf, KB_ScanCodeToString(ud.config.KeyboardKeys[gameFunc][0]));
+                    *tempbuf = 0;
+#ifdef __PSP2__
+                    // Scripts use this for on-screen prompts, and the Vita has no keyboard, so name the
+                    // first controller button bound to the function instead.
+                    for (int i = 0; i < joystick.numButtons && !*tempbuf; i++)
+                        if (ud.config.JoystickFunctions[i][0] == gameFunc)
+                            if (char const *name = joyGetName(1, i))
+                                Bstrcpy(tempbuf, name);
 
-                        if (!*tempbuf)
-                            Bstrcpy(tempbuf, KB_ScanCodeToString(ud.config.KeyboardKeys[gameFunc][1]));
+                    if (!*tempbuf)
+#endif
+                    {
+                        if (funcPos < 2)
+                            Bstrcpy(tempbuf, KB_ScanCodeToString(ud.config.KeyboardKeys[gameFunc][funcPos]));
+                        else
+                        {
+                            Bstrcpy(tempbuf, KB_ScanCodeToString(ud.config.KeyboardKeys[gameFunc][0]));
+
+                            if (!*tempbuf)
+                                Bstrcpy(tempbuf, KB_ScanCodeToString(ud.config.KeyboardKeys[gameFunc][1]));
+                        }
                     }
 
                     if (*tempbuf)

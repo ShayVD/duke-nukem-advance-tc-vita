@@ -976,8 +976,11 @@ void joyScanDevices()
                 joystick.isGameController = 1;
 
 #ifdef __PSP2__
-                // The handheld has no L2/R2; vita_updatetouchtriggers() drives these axes from the touch panels.
+                // The handheld has no L2/R2 or touchpad button; vita_updatetouchtriggers() drives them
+                // from the touch panels.
                 joystick.numAxes = SDL_CONTROLLER_AXIS_MAX;
+                joystick.numButtons = max(joystick.numButtons, SDL_CONTROLLER_BUTTON_TOUCHPAD + 1);
+                joystick.validButtons |= 1 << SDL_CONTROLLER_BUTTON_TOUCHPAD;
 #endif
 
                 if (gameControllerDBLoaded == false)
@@ -1251,7 +1254,11 @@ const char *joyGetName(int32_t what, int32_t num)
                     "Paddle 2",
                     "Paddle 3",
                     "Paddle 4",
+#ifdef __PSP2__
+                    "Touchscreen",
+#else
                     "Touchpad",
+#endif
                     NULL
                 };
 
@@ -2888,6 +2895,12 @@ static void vita_updatetouchtriggers(void)
 
     joystick.pAxis[SDL_CONTROLLER_AXIS_TRIGGERLEFT]  = (zones & VITA_TOUCH_L2) ? INT16_MAX : 0;
     joystick.pAxis[SDL_CONTROLLER_AXIS_TRIGGERRIGHT] = (zones & VITA_TOUCH_R2) ? INT16_MAX : 0;
+
+    if (zones & VITA_TOUCH_FRONT)
+        joystick.bits |= 1 << SDL_CONTROLLER_BUTTON_TOUCHPAD;
+    else
+        joystick.bits &= ~(1 << SDL_CONTROLLER_BUTTON_TOUCHPAD);
+
     lastzones = zones;
 }
 #endif

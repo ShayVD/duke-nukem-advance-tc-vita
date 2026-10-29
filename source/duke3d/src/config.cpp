@@ -653,6 +653,8 @@ void CONFIG_SetGameControllerDefaults()
         { CONTROLLER_BUTTON_LEFTSHOULDER, gamefunc_Jump },
         { CONTROLLER_BUTTON_RIGHTSHOULDER, gamefunc_Fire },
         { CONTROLLER_BUTTON_B, gamefunc_Toggle_Crouch },
+        { CONTROLLER_BUTTON_BACK, gamefunc_TurnAround }, // DNA's mod menu
+        { (GameControllerButton)(CONTROLLER_BUTTON_PADDLE4 + 1), gamefunc_Map }, // SDL's touchpad: a front screen tap
     };
 
     static GameControllerDigitalAxisSetting const digitalAxes[] =
